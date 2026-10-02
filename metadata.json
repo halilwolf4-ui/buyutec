@@ -1,0 +1,6 @@
+{
+  "name": "Büyüteç Bütçe - Kişisel Mobil Bütçe ve Harcama Asistanı",
+  "description": "Modern, stilize ve akıllı mobil kişisel bütçe, harcama ve borç yönetim uygulaması.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
