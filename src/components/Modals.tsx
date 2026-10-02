@@ -54,17 +54,17 @@ export const BottomSheetModal: React.FC<ModalWrapperProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-md"
+            className="fixed inset-0 bg-black/80"
           />
 
           {/* Sheet Container */}
           <motion.div
-            initial={{ y: '100%', opacity: 0.8 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '100%', opacity: 0.8 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
             className={`relative w-full max-w-md max-h-[90vh] flex flex-col rounded-t-[28px] sm:rounded-3xl border shadow-2xl overflow-hidden z-10 ${
               isLight
                 ? 'bg-slate-50 border-slate-200 text-slate-900'

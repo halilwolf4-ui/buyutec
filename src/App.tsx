@@ -590,7 +590,7 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen w-full flex flex-col items-center justify-start transition-colors duration-300 ${
+      className={`min-h-screen w-full flex flex-col items-center justify-start ${
         isLight ? 'bg-[#f0f4f9] text-slate-900' : 'bg-[#07090e] text-slate-100'
       }`}
     >
@@ -601,12 +601,12 @@ export default function App() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-xl border flex items-center gap-2 text-xs font-bold tracking-tight ${
+            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-2xl border flex items-center gap-2 text-xs font-bold tracking-tight ${
               toast.type === 'error'
-                ? 'bg-rose-500/90 border-rose-400 text-white'
+                ? 'bg-rose-500 border-rose-400 text-white'
                 : toast.type === 'info'
-                ? 'bg-cyan-500/90 border-cyan-400 text-slate-950'
-                : 'bg-emerald-500/90 border-emerald-400 text-slate-950'
+                ? 'bg-cyan-500 border-cyan-400 text-slate-950'
+                : 'bg-emerald-500 border-emerald-400 text-slate-950'
             }`}
           >
             {toast.type === 'error' ? (
@@ -621,103 +621,69 @@ export default function App() {
 
       {/* Main Responsive Mobile App Container */}
       <div
-        className={`w-full max-w-md min-h-screen flex flex-col justify-start relative shadow-2xl transition-colors duration-300 ${
+        className={`w-full max-w-md min-h-screen flex flex-col justify-start relative shadow-2xl ${
           isLight ? 'bg-[#ffffff]' : 'bg-[#0b0e17]'
         }`}
       >
-        {/* Main Content Area */}
+        {/* Main Content Area - Instant Tab Switching without Lag */}
         <main className="flex-1 px-4 pt-4 pb-24 overflow-y-auto">
-          <AnimatePresence mode="wait">
-            {activeTab === 'overview' && (
-              <motion.div
-                key="overview"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <OverviewTab
-                  data={data}
-                  selectedYear={selectedYear}
-                  onYearChange={delta => setSelectedYear(prev => prev + delta)}
-                  onSelectMonth={openMonth}
-                  onOpenDebtManager={() => setIsDebtManagerOpen(true)}
-                  onOpenAuth={() => setIsAuthOpen(true)}
-                  onOpenSavings={() => setActiveTab('savings')}
-                  currentUser={currentUser}
-                  isLight={isLight}
-                  onToggleTheme={() => setIsLight(!isLight)}
-                />
-              </motion.div>
-            )}
+          {activeTab === 'overview' && (
+            <OverviewTab
+              data={data}
+              selectedYear={selectedYear}
+              onYearChange={delta => setSelectedYear(prev => prev + delta)}
+              onSelectMonth={openMonth}
+              onOpenDebtManager={() => setIsDebtManagerOpen(true)}
+              onOpenAuth={() => setIsAuthOpen(true)}
+              onOpenSavings={() => setActiveTab('savings')}
+              currentUser={currentUser}
+              isLight={isLight}
+              onToggleTheme={() => setIsLight(!isLight)}
+            />
+          )}
 
-            {activeTab === 'this-month' && currentMonth && (
-              <motion.div
-                key="this-month"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <MonthEditorTab
-                  currentMonth={currentMonth}
-                  onUpdateMonth={setCurrentMonth}
-                  onSaveMonth={handleSaveMonth}
-                  onResetMonth={handleResetMonth}
-                  onOpenPayDebt={() => setIsPayDebtOpen(true)}
-                  onBackToOverview={() => setActiveTab('overview')}
-                  onOpenTransactionModal={handleOpenTxModal}
-                  onRestoreDebt={handleRestoreDebt}
-                  cycleStartDay={data.settings.cycleStartDay || 1}
-                  isLight={isLight}
-                  allPreviousCategories={allPreviousCategories}
-                  allPreviousIncomes={allPreviousIncomes}
-                  allPreviousItems={allPreviousItems}
-                />
-              </motion.div>
-            )}
+          {activeTab === 'this-month' && currentMonth && (
+            <MonthEditorTab
+              currentMonth={currentMonth}
+              onUpdateMonth={setCurrentMonth}
+              onSaveMonth={handleSaveMonth}
+              onResetMonth={handleResetMonth}
+              onOpenPayDebt={() => setIsPayDebtOpen(true)}
+              onBackToOverview={() => setActiveTab('overview')}
+              onOpenTransactionModal={handleOpenTxModal}
+              onRestoreDebt={handleRestoreDebt}
+              cycleStartDay={data.settings.cycleStartDay || 1}
+              isLight={isLight}
+              allPreviousCategories={allPreviousCategories}
+              allPreviousIncomes={allPreviousIncomes}
+              allPreviousItems={allPreviousItems}
+            />
+          )}
 
-            {activeTab === 'savings' && (
-              <motion.div
-                key="savings"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <SavingsTab
-                  savings={data.savings || []}
-                  cashBuffer={cashBuffer}
-                  onUpdateSavings={handleUpdateSavings}
-                  isLight={isLight}
-                  onOpenAddModal={() => setIsAddSavingsOpen(true)}
-                />
-              </motion.div>
-            )}
+          {activeTab === 'savings' && (
+            <SavingsTab
+              savings={data.savings || []}
+              cashBuffer={cashBuffer}
+              onUpdateSavings={handleUpdateSavings}
+              isLight={isLight}
+              onOpenAddModal={() => setIsAddSavingsOpen(true)}
+            />
+          )}
 
-            {activeTab === 'settings' && (
-              <motion.div
-                key="settings"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <SettingsTab
-                  data={data}
-                  onUpdateSettings={handleUpdateSettings}
-                  onOpenRecurringModal={() => setIsRecurringOpen(true)}
-                  onDownloadBackup={handleDownloadBackup}
-                  onUploadBackup={handleUploadBackup}
-                  onLogout={handleLogout}
-                  onClearAllData={handleClearAllData}
-                  currentUser={currentUser}
-                  onOpenAuth={() => setIsAuthOpen(true)}
-                  isLight={isLight}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {activeTab === 'settings' && (
+            <SettingsTab
+              data={data}
+              onUpdateSettings={handleUpdateSettings}
+              onOpenRecurringModal={() => setIsRecurringOpen(true)}
+              onDownloadBackup={handleDownloadBackup}
+              onUploadBackup={handleUploadBackup}
+              onLogout={handleLogout}
+              onClearAllData={handleClearAllData}
+              currentUser={currentUser}
+              onOpenAuth={() => setIsAuthOpen(true)}
+              isLight={isLight}
+            />
+          )}
         </main>
 
         {/* Bottom Navigation */}

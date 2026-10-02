@@ -4,6 +4,7 @@ import { AppData, MonthData, TR_MONTHS, TR_MONTHS_SHORT, formatMoney, getCycleSt
 import { BrandLogo } from './BrandLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { TugOfWarBar } from './TugOfWarBar';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   ChevronLeft,
   ChevronRight,
@@ -153,6 +154,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* PWA Install Button */}
+          <PWAInstallButton isLight={isLight} />
+
           {/* User Profile Avatar Trigger */}
           <button
             onClick={onOpenAuth}
