@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Debt, RecurringItem, formatMoney, generateId } from '../types';
+import { Debt, RecurringItem, formatMoney } from '../types';
 import {
   X,
   CreditCard,
   Repeat,
   Plus,
   Trash2,
-  AlertCircle,
-  CheckCircle2,
-  DollarSign,
-  ArrowRight,
-  User,
-  Lock,
   ChevronDown
 } from 'lucide-react';
 
@@ -48,7 +42,7 @@ export const BottomSheetModal: React.FC<ModalWrapperProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -59,40 +53,72 @@ export const BottomSheetModal: React.FC<ModalWrapperProps> = ({
             className="fixed inset-0 bg-black/80"
           />
 
-          {/* Sheet Container */}
+          {/* Centered Modal Container - Sharp & Compact (Does not cover full screen) */}
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className={`relative w-full max-w-md max-h-[90vh] flex flex-col rounded-t-[28px] sm:rounded-3xl border shadow-2xl overflow-hidden z-10 ${
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className={`relative w-full max-w-sm sm:max-w-md max-h-[85vh] flex flex-col rounded-lg border-2 shadow-2xl overflow-hidden z-10 ${
               isLight
-                ? 'bg-slate-50 border-slate-200 text-slate-900'
-                : 'bg-[#10141e] border-white/[0.08] text-slate-100'
+                ? 'bg-white border-[#4361ee]/30 text-slate-900 shadow-slate-400/25'
+                : 'bg-[#181427] border-[#3e3455] text-slate-100 shadow-black'
             }`}
           >
-            {/* Grab Handle */}
-            <div className="w-12 h-1.5 rounded-full bg-slate-500/30 mx-auto mt-3 mb-1 sm:hidden" />
+            {/* Top Accent Strip */}
+            <div
+              className={`h-1 w-full shrink-0 ${
+                isLight
+                  ? 'bg-gradient-to-r from-[#f72585] via-[#7209b7] to-[#4361ee]'
+                  : 'bg-gradient-to-r from-emerald-500 via-cyan-400 to-[#7209b7]'
+              }`}
+            />
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-3 pb-3 border-b border-white/[0.06]">
-              <div className="flex items-center gap-2.5">
-                {icon && <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">{icon}</div>}
+            <div
+              className={`flex items-center justify-between px-4 py-3 border-b shrink-0 ${
+                isLight ? 'border-slate-200' : 'border-white/[0.08]'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {icon && (
+                  <div
+                    className={`w-7 h-7 rounded-md flex items-center justify-center text-xs ${
+                      isLight ? 'bg-[#4361ee]/10 text-[#4361ee]' : 'bg-cyan-500/10 text-cyan-400'
+                    }`}
+                  >
+                    {icon}
+                  </div>
+                )}
                 <div>
-                  <h3 className="text-base font-bold tracking-tight">{title}</h3>
-                  {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+                  <h3
+                    className={`text-sm font-black font-mono tracking-tight leading-tight ${
+                      isLight ? 'text-slate-900' : 'text-slate-100'
+                    }`}
+                  >
+                    {title}
+                  </h3>
+                  {subtitle && (
+                    <p className={`text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {subtitle}
+                    </p>
+                  )}
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                className={`w-7 h-7 rounded-md border flex items-center justify-center transition-colors ${
+                  isLight
+                    ? 'border-slate-300 text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                    : 'border-[#3e3455] text-slate-400 hover:text-white hover:bg-white/[0.08]'
+                }`}
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="p-6 overflow-y-auto space-y-4">{children}</div>
+            <div className="p-4 overflow-y-auto space-y-3">{children}</div>
           </motion.div>
         </div>
       )}
@@ -114,7 +140,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   onClose,
   title,
   onConfirm,
-  isLight
+  isLight = false
 }) => {
   const [amount, setAmount] = useState('');
   const [desc, setDesc] = useState('');
@@ -146,9 +172,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       icon={<Plus className="w-4 h-4" />}
       isLight={isLight}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+          <label
+            className={`block text-[10px] font-black font-mono uppercase tracking-wider mb-1 ${
+              isLight ? 'text-slate-700' : 'text-slate-400'
+            }`}
+          >
             Tutar (₺)
           </label>
           <div className="relative">
@@ -159,16 +189,28 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               placeholder="0"
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              className="w-full h-14 pl-4 pr-12 rounded-2xl bg-white/[0.05] border border-white/[0.1] text-2xl font-bold font-mono focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400/50 transition-all placeholder:text-slate-600"
+              className={`w-full h-11 pl-3 pr-10 rounded-md border-2 text-xl font-black font-mono focus:outline-none transition-all ${
+                isLight
+                  ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                  : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-600 focus:border-cyan-400'
+              }`}
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">
+            <span
+              className={`absolute right-3 top-1/2 -translate-y-1/2 font-mono font-bold text-base ${
+                isLight ? 'text-slate-400' : 'text-slate-500'
+              }`}
+            >
               ₺
             </span>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+          <label
+            className={`block text-[10px] font-black font-mono uppercase tracking-wider mb-1 ${
+              isLight ? 'text-slate-700' : 'text-slate-400'
+            }`}
+          >
             Açıklama (İsteğe bağlı)
           </label>
           <input
@@ -176,21 +218,33 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             placeholder="Örn: Hafta Sonu Alışverişi, Fatura vb."
             value={desc}
             onChange={e => setDesc(e.target.value)}
-            className="w-full h-12 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400/50 transition-all placeholder:text-slate-600"
+            className={`w-full h-10 px-3 rounded-md border-2 text-xs font-medium focus:outline-none transition-all ${
+              isLight
+                ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-600 focus:border-cyan-400'
+            }`}
           />
         </div>
 
-        <div className="flex gap-2.5 pt-2">
+        <div className="flex gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-12 rounded-xl border border-white/[0.1] text-slate-300 font-semibold text-sm hover:bg-white/[0.05] transition-colors"
+            className={`flex-1 h-10 rounded-md border-2 font-mono font-bold text-xs transition-colors ${
+              isLight
+                ? 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                : 'border-[#3e3455] text-slate-300 hover:bg-white/[0.05]'
+            }`}
           >
             İptal
           </button>
           <button
             type="submit"
-            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-400 active:scale-[0.98] transition-all"
+            className={`flex-1 h-10 rounded-md font-mono font-bold text-xs shadow-md active:scale-[0.98] transition-all ${
+              isLight
+                ? 'bg-gradient-to-r from-[#f72585] via-[#7209b7] to-[#4361ee] text-white shadow-[#4361ee]/25'
+                : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-cyan-500/25'
+            }`}
           >
             Ekle
           </button>
@@ -216,7 +270,7 @@ export const DebtManagerModal: React.FC<DebtManagerModalProps> = ({
   debts,
   onAddDebt,
   onDeleteDebt,
-  isLight
+  isLight = false
 }) => {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -244,28 +298,38 @@ export const DebtManagerModal: React.FC<DebtManagerModalProps> = ({
       onClose={onClose}
       title="Borç Yönetimi"
       subtitle={`Toplam Borç: ${formatMoney(totalRemaining)}`}
-      icon={<CreditCard className="w-4 h-4" />}
+      icon={<CreditCard className="w-4 h-4 text-rose-400" />}
       isLight={isLight}
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Existing Debts List */}
-        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
           {debts.length === 0 ? (
-            <div className="text-center py-6 border border-dashed border-white/[0.08] rounded-2xl p-4">
-              <p className="text-xs text-slate-400">Kayıtlı borcunuz bulunmuyor.</p>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Aşağıdaki formu kullanarak yeni taksitli veya tek seferlik borç ekleyebilirsiniz.
+            <div
+              className={`text-center py-4 border-2 border-dashed rounded-md p-3 ${
+                isLight ? 'border-slate-300 bg-slate-50' : 'border-[#372d4c] bg-[#120f1e]'
+              }`}
+            >
+              <p className={`text-xs font-mono font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                Kayıtlı borcunuz bulunmuyor.
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                Aşağıdaki formu kullanarak yeni borç ekleyebilirsiniz.
               </p>
             </div>
           ) : (
             debts.map(d => (
               <div
                 key={d.id}
-                className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-between gap-3"
+                className={`p-2.5 rounded-md border-2 flex items-center justify-between gap-2 ${
+                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#120f1e] border-[#372d4c]'
+                }`}
               >
                 <div className="min-w-0">
-                  <h4 className="text-xs font-bold truncate text-slate-200">{d.name}</h4>
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                  <h4 className={`text-xs font-black truncate ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
+                    {d.name}
+                  </h4>
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 mt-0.5">
                     <span>Aylık: {formatMoney(d.installmentAmount)}</span>
                     <span>·</span>
                     <span>{d.installments} Taksit</span>
@@ -273,10 +337,10 @@ export const DebtManagerModal: React.FC<DebtManagerModalProps> = ({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right">
-                    <div className="text-xs font-bold font-mono text-rose-400">
+                    <div className="text-xs font-black font-mono text-rose-500">
                       {formatMoney(d.remainingAmount)}
                     </div>
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-[9px] font-mono text-slate-400">
                       / {formatMoney(d.totalAmount)}
                     </div>
                   </div>
@@ -286,7 +350,7 @@ export const DebtManagerModal: React.FC<DebtManagerModalProps> = ({
                         onDeleteDebt(d.id);
                       }
                     }}
-                    className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    className="p-1.5 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                     title="Borcu Sil"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -297,12 +361,20 @@ export const DebtManagerModal: React.FC<DebtManagerModalProps> = ({
           )}
         </div>
 
-        {/* Add New Debt Form */}
+        {/* Add New Debt Form - Sharp */}
         <form
           onSubmit={handleAdd}
-          className="p-4 rounded-2xl bg-white/[0.03] border border-cyan-500/20 space-y-3"
+          className={`p-3 rounded-md border-2 space-y-2.5 ${
+            isLight
+              ? 'bg-[#f8f9fe] border-[#4361ee]/20'
+              : 'bg-[#141220] border-[#372d4c]'
+          }`}
         >
-          <div className="flex items-center gap-2 text-xs font-bold text-cyan-400">
+          <div
+            className={`flex items-center gap-1.5 text-xs font-black font-mono uppercase tracking-wider ${
+              isLight ? 'text-[#4361ee]' : 'text-cyan-400'
+            }`}
+          >
             <Plus className="w-3.5 h-3.5" />
             <span>Yeni Borç Ekle</span>
           </div>
@@ -312,7 +384,11 @@ export const DebtManagerModal: React.FC<DebtManagerModalProps> = ({
             placeholder="Borç Adı (Örn: Kredi Kartı, Telefon Kredisi)"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full h-11 px-3.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs focus:border-cyan-400 focus:outline-none"
+            className={`w-full h-9 px-3 rounded-md border-2 text-xs font-bold focus:outline-none ${
+              isLight
+                ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+            }`}
           />
 
           <div className="grid grid-cols-2 gap-2">
@@ -321,20 +397,32 @@ export const DebtManagerModal: React.FC<DebtManagerModalProps> = ({
               placeholder="Toplam Borç (₺)"
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              className="w-full h-11 px-3.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-mono focus:border-cyan-400 focus:outline-none"
+              className={`w-full h-9 px-3 rounded-md border-2 text-xs font-mono font-bold focus:outline-none ${
+                isLight
+                  ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                  : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+              }`}
             />
             <input
               type="number"
               placeholder="Taksit Sayısı (Ay)"
               value={installments}
               onChange={e => setInstallments(e.target.value)}
-              className="w-full h-11 px-3.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-mono focus:border-cyan-400 focus:outline-none"
+              className={`w-full h-9 px-3 rounded-md border-2 text-xs font-mono font-bold focus:outline-none ${
+                isLight
+                  ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                  : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+              }`}
             />
           </div>
 
           <button
             type="submit"
-            className="w-full h-11 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 hover:bg-cyan-400 active:scale-[0.98] transition-all"
+            className={`w-full h-9 rounded-md font-mono font-bold text-xs shadow-sm active:scale-[0.98] transition-all ${
+              isLight
+                ? 'bg-[#4361ee] text-white shadow-[#4361ee]/25'
+                : 'bg-cyan-400 text-slate-950 shadow-cyan-500/20'
+            }`}
           >
             Borcu Kaydet
           </button>
@@ -358,7 +446,7 @@ export const PayDebtModal: React.FC<PayDebtModalProps> = ({
   onClose,
   debts,
   onConfirmPay,
-  isLight
+  isLight = false
 }) => {
   const [selectedDebtId, setSelectedDebtId] = useState('');
   const [payAmount, setPayAmount] = useState('');
@@ -402,48 +490,62 @@ export const PayDebtModal: React.FC<PayDebtModalProps> = ({
       onClose={onClose}
       title="Borç Öde"
       subtitle="Mevcut borcunuzdan taksit düşün"
-      icon={<CreditCard className="w-4 h-4 text-rose-400" />}
+      icon={<CreditCard className="w-4 h-4 text-rose-500" />}
       isLight={isLight}
     >
       {activeDebts.length === 0 ? (
-        <div className="text-center py-6 space-y-2">
-          <p className="text-sm font-semibold text-slate-300">
+        <div className="text-center py-4 space-y-2">
+          <p className={`text-xs font-bold font-mono ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>
             Ödenecek aktif borcunuz bulunmuyor!
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-[10px] text-slate-400 font-mono">
             Genel Bakış veya Ayarlar menüsünden yeni bir borç tanımlayabilirsiniz.
           </p>
           <button
             onClick={onClose}
-            className="mt-4 px-6 py-2.5 rounded-xl bg-white/[0.08] text-xs font-semibold"
+            className={`mt-2 px-4 py-1.5 rounded-md text-xs font-mono font-bold border ${
+              isLight ? 'bg-slate-100 border-slate-300 text-slate-700' : 'bg-white/[0.08] border-white/[0.1] text-slate-300'
+            }`}
           >
             Kapat
           </button>
         </div>
       ) : (
-        <form onSubmit={handlePay} className="space-y-4">
+        <form onSubmit={handlePay} className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label
+              className={`block text-[10px] font-black font-mono uppercase tracking-wider mb-1 ${
+                isLight ? 'text-slate-700' : 'text-slate-400'
+              }`}
+            >
               Hangi Borcu Ödüyorsunuz?
             </label>
             <div className="relative">
               <select
                 value={selectedDebtId}
                 onChange={e => handleDebtChange(e.target.value)}
-                className="w-full h-12 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-xs font-semibold appearance-none focus:border-rose-400 focus:outline-none"
+                className={`w-full h-10 px-3 pr-8 rounded-md border-2 text-xs font-mono font-bold appearance-none focus:outline-none ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-300 text-slate-900 focus:border-rose-400'
+                    : 'bg-[#120f1e] border-[#372d4c] text-slate-100 focus:border-rose-400'
+                }`}
               >
                 {activeDebts.map(d => (
-                  <option key={d.id} value={d.id} className="bg-slate-900 text-white">
+                  <option key={d.id} value={d.id} className={isLight ? 'bg-white text-slate-900' : 'bg-[#181427] text-white'}>
                     {d.name} — Kalan: {formatMoney(d.remainingAmount)} (Taksit: {formatMoney(d.installmentAmount)})
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label
+              className={`block text-[10px] font-black font-mono uppercase tracking-wider mb-1 ${
+                isLight ? 'text-slate-700' : 'text-slate-400'
+              }`}
+            >
               Ödenecek Tutar (₺)
             </label>
             <div className="relative">
@@ -452,28 +554,36 @@ export const PayDebtModal: React.FC<PayDebtModalProps> = ({
                 step="any"
                 value={payAmount}
                 onChange={e => setPayAmount(e.target.value)}
-                className="w-full h-14 pl-4 pr-12 rounded-2xl bg-white/[0.05] border border-white/[0.1] text-2xl font-bold font-mono text-rose-400 focus:border-rose-400 focus:outline-none"
+                className={`w-full h-11 pl-3 pr-10 rounded-md border-2 text-xl font-black font-mono text-rose-500 focus:outline-none ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-300 focus:border-rose-500'
+                    : 'bg-[#120f1e] border-[#372d4c] focus:border-rose-500'
+                }`}
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono font-bold text-base">
                 ₺
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Ödeme yapıldığında bu ayın bütçesine gider olarak eklenir ve kalan borçtan düşülür.
+            <p className="text-[10px] text-slate-400 mt-1 font-mono">
+              Ödeme yapıldığında bu ayın bütçesine eklenir ve kalan borçtan düşülür.
             </p>
           </div>
 
-          <div className="flex gap-2.5 pt-2">
+          <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 h-12 rounded-xl border border-white/[0.1] text-slate-300 font-semibold text-sm hover:bg-white/[0.05]"
+              className={`flex-1 h-10 rounded-md border-2 font-mono font-bold text-xs transition-colors ${
+                isLight
+                  ? 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                  : 'border-[#3e3455] text-slate-300 hover:bg-white/[0.05]'
+              }`}
             >
               İptal
             </button>
             <button
               type="submit"
-              className="flex-1 h-12 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-sm shadow-lg shadow-rose-500/25 hover:from-rose-400 hover:to-pink-400 active:scale-[0.98] transition-all"
+              className="flex-1 h-10 rounded-md bg-gradient-to-r from-rose-500 to-pink-500 text-white font-mono font-bold text-xs shadow-md shadow-rose-500/25 active:scale-[0.98] transition-all"
             >
               Borcu Öde
             </button>
@@ -500,7 +610,7 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
   recurring,
   onAddRecurring,
   onDeleteRecurring,
-  isLight
+  isLight = false
 }) => {
   const [type, setType] = useState<'income' | 'expense'>('income');
   const [name, setName] = useState('');
@@ -527,35 +637,45 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
       icon={<Repeat className="w-4 h-4 text-cyan-400" />}
       isLight={isLight}
     >
-      <div className="space-y-4">
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Buraya ekleyeceğiniz Maaş, Kira, Aidat gibi kalemler her yeni ayda otomatik olarak hazır bekler. Tek tuşla ödeme alabilir veya ödeyebilirsiniz.
+      <div className="space-y-3">
+        <p className={`text-xs font-mono leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+          Maaş, Kira, Aidat gibi kalemler her yeni ayda otomatik olarak hazır bekler.
         </p>
 
         {/* Existing Items */}
-        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
           {recurring.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-4">Kayıtlı kalıcı işlem yok.</p>
+            <p className="text-xs text-slate-400 font-mono text-center py-3">Kayıtlı kalıcı işlem yok.</p>
           ) : (
             recurring.map(item => (
               <div
                 key={item.id}
-                className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-between gap-3"
+                className={`p-2.5 rounded-md border-2 flex items-center justify-between gap-2 ${
+                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#120f1e] border-[#372d4c]'
+                }`}
               >
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-200">{item.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-xs font-black ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
+                      {item.name}
+                    </span>
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                      className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm ${
                         item.type === 'income'
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : 'bg-rose-500/10 text-rose-400'
+                          ? isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/15 text-emerald-400'
+                          : isLight ? 'bg-rose-100 text-rose-700' : 'bg-rose-500/15 text-rose-400'
                       }`}
                     >
                       {item.type === 'income' ? 'Gelir' : 'Gider'}
                     </span>
                   </div>
-                  <div className="text-xs font-bold font-mono mt-1 text-slate-300">
+                  <div
+                    className={`text-xs font-black font-mono mt-0.5 ${
+                      item.type === 'income'
+                        ? isLight ? 'text-emerald-600' : 'text-emerald-400'
+                        : isLight ? 'text-rose-600' : 'text-rose-400'
+                    }`}
+                  >
                     {formatMoney(item.amount)}
                   </div>
                 </div>
@@ -565,7 +685,7 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
                       onDeleteRecurring(item.id);
                     }
                   }}
-                  className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                  className="p-1.5 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -574,12 +694,20 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
           )}
         </div>
 
-        {/* Add Form */}
+        {/* Add Form - Sharp */}
         <form
           onSubmit={handleAdd}
-          className="p-4 rounded-2xl bg-white/[0.03] border border-cyan-500/20 space-y-3"
+          className={`p-3 rounded-md border-2 space-y-2.5 ${
+            isLight
+              ? 'bg-[#f8f9fe] border-[#4361ee]/20'
+              : 'bg-[#141220] border-[#372d4c]'
+          }`}
         >
-          <div className="flex items-center gap-2 text-xs font-bold text-cyan-400">
+          <div
+            className={`flex items-center gap-1.5 text-xs font-black font-mono uppercase tracking-wider ${
+              isLight ? 'text-[#4361ee]' : 'text-cyan-400'
+            }`}
+          >
             <Plus className="w-3.5 h-3.5" />
             <span>Yeni Kalıcı İşlem Ekle</span>
           </div>
@@ -588,24 +716,28 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
             <button
               type="button"
               onClick={() => setType('income')}
-              className={`h-10 rounded-xl text-xs font-bold transition-all ${
+              className={`h-9 rounded-md text-xs font-mono font-bold transition-all border ${
                 type === 'income'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'bg-white/[0.05] text-slate-400'
+                  ? 'bg-emerald-500 border-emerald-500 text-slate-950 shadow-sm'
+                  : isLight
+                  ? 'bg-white border-slate-300 text-slate-600'
+                  : 'bg-[#120f1e] border-[#372d4c] text-slate-400'
               }`}
             >
-              💰 Gelir (Maaş vb.)
+              💰 Gelir (Maaş)
             </button>
             <button
               type="button"
               onClick={() => setType('expense')}
-              className={`h-10 rounded-xl text-xs font-bold transition-all ${
+              className={`h-9 rounded-md text-xs font-mono font-bold transition-all border ${
                 type === 'expense'
-                  ? 'bg-rose-500 text-white shadow-sm'
-                  : 'bg-white/[0.05] text-slate-400'
+                  ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
+                  : isLight
+                  ? 'bg-white border-slate-300 text-slate-600'
+                  : 'bg-[#120f1e] border-[#372d4c] text-slate-400'
               }`}
             >
-              💸 Gider (Kira vb.)
+              💸 Gider (Kira)
             </button>
           </div>
 
@@ -614,7 +746,11 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
             placeholder="İşlem Adı (Örn: Maaş, Ev Kirası)"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full h-11 px-3.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs focus:border-cyan-400 focus:outline-none"
+            className={`w-full h-9 px-3 rounded-md border-2 text-xs font-bold focus:outline-none ${
+              isLight
+                ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+            }`}
           />
 
           <input
@@ -622,12 +758,20 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
             placeholder="Sabit Tutar (₺)"
             value={amount}
             onChange={e => setAmount(e.target.value)}
-            className="w-full h-11 px-3.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-mono focus:border-cyan-400 focus:outline-none"
+            className={`w-full h-9 px-3 rounded-md border-2 text-xs font-mono font-bold focus:outline-none ${
+              isLight
+                ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+            }`}
           />
 
           <button
             type="submit"
-            className="w-full h-11 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 hover:bg-cyan-400 active:scale-[0.98] transition-all"
+            className={`w-full h-9 rounded-md font-mono font-bold text-xs shadow-sm active:scale-[0.98] transition-all ${
+              isLight
+                ? 'bg-[#4361ee] text-white shadow-[#4361ee]/20'
+                : 'bg-cyan-400 text-slate-950 shadow-cyan-500/20'
+            }`}
           >
             Kalıcı İşlemi Kaydet
           </button>

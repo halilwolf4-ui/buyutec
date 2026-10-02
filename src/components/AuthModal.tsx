@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { BrandLogo } from './BrandLogo';
-import { User, Lock, ArrowRight, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { X, User, Lock } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -64,7 +64,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -75,32 +75,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         className="fixed inset-0 bg-black/80"
       />
 
-      {/* Modal Box */}
+      {/* Modal Box - Sharp & Compact */}
       <motion.div
-        initial={{ scale: 0.92, opacity: 0, y: 12 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.92, opacity: 0, y: 12 }}
-        className={`relative w-full max-w-sm rounded-3xl border p-6 shadow-2xl overflow-hidden z-10 ${
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
+        className={`relative w-full max-w-sm rounded-lg border-2 p-4 shadow-2xl overflow-hidden z-10 ${
           isLight
-            ? 'bg-white border-slate-200 text-slate-900 shadow-slate-300/40'
-            : 'bg-[#10131c] border-white/[0.1] text-slate-100 shadow-black'
+            ? 'bg-white border-[#4361ee]/30 text-slate-900 shadow-slate-400/25'
+            : 'bg-[#181427] border-[#3e3455] text-slate-100 shadow-black'
         }`}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+          className={`absolute top-3.5 right-3.5 w-7 h-7 rounded-md border flex items-center justify-center transition-colors ${
+            isLight
+              ? 'border-slate-300 text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              : 'border-[#3e3455] text-slate-400 hover:text-white hover:bg-white/[0.08]'
+          }`}
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
 
         {currentUser ? (
-          <div className="text-center space-y-4 py-2">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 mx-auto flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-cyan-500/30">
+          <div className="text-center space-y-3 py-1">
+            <div className="w-12 h-12 rounded-md bg-gradient-to-tr from-cyan-500 to-blue-500 mx-auto flex items-center justify-center text-slate-950 font-black text-xl shadow-md">
               {currentUser.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h3 className="text-lg font-bold">Aktif Hesap: {currentUser}</h3>
-              <p className="text-xs text-slate-400">Verileriniz bu kullanıcı altında güvende.</p>
+              <h3 className={`text-base font-black font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+                Aktif Hesap: {currentUser}
+              </h3>
+              <p className="text-[11px] text-slate-400 font-mono">Verileriniz bu kullanıcı altında güvende.</p>
             </div>
 
             <div className="pt-2 space-y-2">
@@ -109,87 +116,105 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onLogout();
                   onClose();
                 }}
-                className="w-full h-11 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-semibold text-xs hover:bg-rose-500/20 transition-colors"
+                className="w-full h-9 rounded-md bg-rose-500/10 border-2 border-rose-500/30 text-rose-500 font-mono font-bold text-xs hover:bg-rose-500/20 transition-colors"
               >
                 Çıkış Yap
               </button>
               <button
                 onClick={onClose}
-                className="w-full h-11 rounded-xl bg-white/[0.05] border border-white/[0.08] font-semibold text-xs hover:bg-white/[0.08] transition-colors"
+                className={`w-full h-9 rounded-md border-2 font-mono font-bold text-xs transition-colors ${
+                  isLight
+                    ? 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                    : 'border-[#3e3455] text-slate-300 hover:bg-white/[0.08]'
+                }`}
               >
                 Kapat
               </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="text-center">
-              <BrandLogo size={52} className="mx-auto mb-2" />
-              <h3 className="text-lg font-black tracking-tight">
+              <BrandLogo size={42} className="mx-auto mb-1.5" />
+              <h3 className={`text-base font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
                 {isLoginMode ? 'Giriş Yap' : 'Yeni Hesap Oluştur'}
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className={`text-[11px] font-mono mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                 Bütçe ve harcama verilerinizi şifreleyin
               </p>
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+              <div className="p-2 rounded-md bg-rose-500/10 border-2 border-rose-500/25 text-rose-500 text-xs font-mono font-bold">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-2.5">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                <label className={`block text-[10px] font-black font-mono uppercase tracking-wider mb-1 ${isLight ? 'text-slate-700' : 'text-slate-400'}`}>
                   Kullanıcı Adı
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     placeholder="kullanici_adi"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    className="w-full h-11 pl-10 pr-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-xs focus:border-cyan-400 focus:outline-none"
+                    className={`w-full h-9 pl-9 pr-3 rounded-md border-2 text-xs font-bold focus:outline-none ${
+                      isLight
+                        ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                        : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+                    }`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                <label className={`block text-[10px] font-black font-mono uppercase tracking-wider mb-1 ${isLight ? 'text-slate-700' : 'text-slate-400'}`}>
                   Şifre
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     required
                     placeholder="••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full h-11 pl-10 pr-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-xs focus:border-cyan-400 focus:outline-none"
+                    className={`w-full h-9 pl-9 pr-3 rounded-md border-2 text-xs font-bold focus:outline-none ${
+                      isLight
+                        ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                        : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+                    }`}
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full h-11 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-400 active:scale-[0.98] transition-all"
+                className={`w-full h-9 rounded-md font-mono font-bold text-xs shadow-md active:scale-[0.98] transition-all ${
+                  isLight
+                    ? 'bg-gradient-to-r from-[#f72585] via-[#7209b7] to-[#4361ee] text-white shadow-[#4361ee]/20'
+                    : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-cyan-500/20'
+                }`}
               >
                 {isLoginMode ? 'Giriş Yap' : 'Hesap Oluştur ve Başla'}
               </button>
             </form>
 
-            <div className="text-center pt-1">
+            <div className="text-center pt-0.5">
               <button
                 type="button"
                 onClick={() => {
                   setIsLoginMode(!isLoginMode);
                   setError(null);
                 }}
-                className="text-xs text-cyan-400 font-semibold hover:underline"
+                className={`text-xs font-mono font-bold hover:underline ${
+                  isLight ? 'text-[#4361ee]' : 'text-cyan-400'
+                }`}
               >
                 {isLoginMode
                   ? 'Hesabınız yok mu? Yeni Hesap Açın'

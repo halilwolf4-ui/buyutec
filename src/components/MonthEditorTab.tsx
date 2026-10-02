@@ -24,12 +24,8 @@ import {
   ChevronUp,
   ArrowUp,
   ArrowDown,
-  GripVertical,
   ArrowLeft,
-  Check,
-  Coins,
-  PiggyBank,
-  Sparkles
+  Coins
 } from 'lucide-react';
 
 interface MonthEditorTabProps {
@@ -69,7 +65,6 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
   allPreviousItems = []
 }) => {
   const [expandedTxIds, setExpandedTxIds] = useState<Record<string, boolean>>({});
-  const [activeInputFocus, setActiveInputFocus] = useState<string | null>(null);
 
   const toggleTx = (key: string) => {
     setExpandedTxIds(prev => ({ ...prev, [key]: !prev[key] }));
@@ -100,79 +95,94 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
     };
   }, [currentMonth]);
 
-  // Quick Pay for recurring item
+  const isSurplus = remaining >= 0;
+
+  // Month cycle title format
+  const monthIdx = parseInt(currentMonth.id.split('-')[1], 10);
+  const cycleStr = getCycleString(monthIdx, cycleStartDay);
+
+  // Quick Pay Recurring handlers
   const handleQuickPay = (type: 'income' | 'expense', catIdx: number, itemIdx?: number) => {
     const today = new Date();
-    const dateStr = `${today.getDate()}/${today.getMonth() + 1}`;
+    const dateStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
 
     if (type === 'income') {
-      const item = currentMonth.incomes[catIdx];
-      if (!item.targetAmount) return;
+      const inc = currentMonth.incomes[catIdx];
+      const target = inc.targetAmount || 0;
+      const newTx: Transaction = {
+        id: generateId(),
+        amount: target,
+        date: dateStr,
+        desc: 'Hızlı Maaş/Gelir Girişi'
+      };
       const newIncomes = [...currentMonth.incomes];
       newIncomes[catIdx] = {
-        ...item,
-        transactions: [
-          ...(item.transactions || []),
-          { id: generateId(), amount: item.targetAmount, desc: 'Kalıcı Gelir', date: dateStr }
-        ]
+        ...inc,
+        transactions: [...(inc.transactions || []), newTx]
       };
       onUpdateMonth({ ...currentMonth, incomes: newIncomes });
     } else if (itemIdx !== undefined) {
       const cat = currentMonth.categories[catIdx];
       const item = cat.items[itemIdx];
-      if (!item.targetAmount) return;
-      const newCategories = [...currentMonth.categories];
+      const target = item.targetAmount || 0;
+      const newTx: Transaction = {
+        id: generateId(),
+        amount: target,
+        date: dateStr,
+        desc: 'Hızlı Sabit Fatura/Abonelik Ödemesi'
+      };
       const newItems = [...cat.items];
       newItems[itemIdx] = {
         ...item,
-        transactions: [
-          ...(item.transactions || []),
-          { id: generateId(), amount: item.targetAmount, desc: 'Kalıcı Gider', date: dateStr }
-        ]
+        transactions: [...(item.transactions || []), newTx]
       };
+      const newCategories = [...currentMonth.categories];
       newCategories[catIdx] = { ...cat, items: newItems };
       onUpdateMonth({ ...currentMonth, categories: newCategories });
     }
   };
 
-  // Slider change handler (optimized for mobile 60fps)
+  // Slider change handler
   const handleSliderChange = (catIdx: number, itemIdx: number, val: number) => {
     const cat = currentMonth.categories[catIdx];
     const item = cat.items[itemIdx];
-    const txs = item.transactions ? [...item.transactions] : [];
+    const today = new Date();
+    const dateStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
 
-    const existingIdx = txs.findIndex(t => t.desc === 'Sürgü ile ayarlandı');
-    if (existingIdx >= 0) {
-      txs[existingIdx] = { ...txs[existingIdx], amount: val };
-    } else {
-      const today = new Date();
-      txs.push({
-        id: generateId(),
-        amount: val,
-        desc: 'Sürgü ile ayarlandı',
-        date: `${today.getDate()}/${today.getMonth() + 1}`
-      });
-    }
+    const newTx: Transaction = {
+      id: generateId(),
+      amount: val,
+      date: dateStr,
+      desc: 'Sürgü Ayarı'
+    };
+
+    const newItems = [...cat.items];
+    newItems[itemIdx] = {
+      ...item,
+      amount: val,
+      transactions: [newTx]
+    };
 
     const newCategories = [...currentMonth.categories];
-    const newItems = [...cat.items];
-    newItems[itemIdx] = { ...item, transactions: txs };
     newCategories[catIdx] = { ...cat, items: newItems };
     onUpdateMonth({ ...currentMonth, categories: newCategories });
   };
 
-  // Toggle slider lock
+  // Toggle lock state
   const handleToggleLock = (catIdx: number, itemIdx: number) => {
     const cat = currentMonth.categories[catIdx];
     const item = cat.items[itemIdx];
-    const newCategories = [...currentMonth.categories];
     const newItems = [...cat.items];
-    newItems[itemIdx] = { ...item, sliderLocked: item.sliderLocked === false ? true : false };
+    newItems[itemIdx] = {
+      ...item,
+      sliderLocked: item.sliderLocked === false ? true : false
+    };
+    const newCategories = [...currentMonth.categories];
     newCategories[catIdx] = { ...cat, items: newItems };
     onUpdateMonth({ ...currentMonth, categories: newCategories });
   };
 
-  // Delete transaction (safe without blocking alert/confirm)
+  // Delete transaction with debt balance restore
   const handleDeleteTx = (
     type: 'income' | 'expense',
     catIdx: number,
@@ -180,20 +190,22 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
     txId: string
   ) => {
     if (type === 'income') {
-      const item = currentMonth.incomes[catIdx];
+      const inc = currentMonth.incomes[catIdx];
       const newIncomes = [...currentMonth.incomes];
       newIncomes[catIdx] = {
-        ...item,
-        transactions: (item.transactions || []).filter(t => t.id !== txId)
+        ...inc,
+        transactions: (inc.transactions || []).filter(t => t.id !== txId)
       };
       onUpdateMonth({ ...currentMonth, incomes: newIncomes });
     } else if (itemIdx !== null) {
       const cat = currentMonth.categories[catIdx];
       const item = cat.items[itemIdx];
       const tx = item.transactions?.find(t => t.id === txId);
-      if (tx && cat.isDebtCategory && item.linkedDebtId) {
+
+      if (item.linkedDebtId && tx) {
         onRestoreDebt(item.linkedDebtId, tx.amount);
       }
+
       const newCategories = [...currentMonth.categories];
       const newItems = [...cat.items];
       newItems[itemIdx] = {
@@ -222,7 +234,6 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
     onUpdateMonth({ ...currentMonth, incomes: newIncomes });
   };
 
-  // Safe delete income without blocking window.confirm
   const handleDeleteIncome = (index: number) => {
     onUpdateMonth({
       ...currentMonth,
@@ -263,7 +274,6 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
     onUpdateMonth({ ...currentMonth, categories: newCategories });
   };
 
-  // Safe delete category without blocking window.confirm
   const handleDeleteCategory = (index: number) => {
     onUpdateMonth({
       ...currentMonth,
@@ -271,7 +281,7 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
     });
   };
 
-  // Move Category Up & Down for manual reordering and save
+  // Move Category Up & Down
   const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= currentMonth.categories.length) return;
@@ -289,7 +299,13 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
       ...cat,
       items: [
         ...cat.items,
-        { id: generateId(), name: 'Yeni Kalem', amount: 0, transactions: [], sliderLocked: true }
+        {
+          id: generateId(),
+          name: 'Yeni Kalem',
+          amount: 0,
+          transactions: [],
+          sliderLocked: true
+        }
       ]
     };
     onUpdateMonth({ ...currentMonth, categories: newCategories });
@@ -297,30 +313,24 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
 
   const handleUpdateItemName = (catIndex: number, itemIndex: number, val: string) => {
     const cat = currentMonth.categories[catIndex];
-    const newCategories = [...currentMonth.categories];
     const newItems = [...cat.items];
     newItems[itemIndex] = { ...newItems[itemIndex], name: val };
+    const newCategories = [...currentMonth.categories];
     newCategories[catIndex] = { ...cat, items: newItems };
     onUpdateMonth({ ...currentMonth, categories: newCategories });
   };
 
-  // Safe delete item without blocking window.confirm
   const handleDeleteItem = (catIndex: number, itemIndex: number) => {
     const cat = currentMonth.categories[catIndex];
+    const newItems = cat.items.filter((_, i) => i !== itemIndex);
     const newCategories = [...currentMonth.categories];
-    newCategories[catIndex] = {
-      ...cat,
-      items: cat.items.filter((_, i) => i !== itemIndex)
-    };
+    newCategories[catIndex] = { ...cat, items: newItems };
     onUpdateMonth({ ...currentMonth, categories: newCategories });
   };
 
-  const cycleStr = getCycleString(currentMonth.monthIdx, cycleStartDay);
-  const isSurplus = remaining >= 0;
-
   return (
     <div className="space-y-4 pb-24">
-      {/* HTML Datalists for Autocomplete (USER REQUEST 3: suggestions prevent typos) */}
+      {/* Autocomplete Lists */}
       <datalist id="category-suggestions-list">
         {allPreviousCategories.map((name, i) => (
           <option key={i} value={name} />
@@ -339,14 +349,14 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
         ))}
       </datalist>
 
-      {/* Top Bar with Navigation & Actions */}
+      {/* Top Bar with Navigation & Actions - Sharp Corners */}
       <div className="flex items-center justify-between pt-1">
         <button
           onClick={onBackToOverview}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-mono font-bold transition-colors ${
             isLight
-              ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-              : 'bg-white/[0.05] border-white/[0.08] text-slate-300 hover:bg-white/[0.1]'
+              ? 'bg-white border-[#4361ee]/30 text-[#4361ee] hover:bg-[#4361ee]/10'
+              : 'bg-[#181427] border-[#3e3455] text-slate-300 hover:text-white'
           }`}
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -357,20 +367,24 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
           {/* Reset Month */}
           <button
             onClick={onResetMonth}
-            className={`p-2 rounded-xl border transition-colors ${
+            className={`p-2 rounded-md border transition-colors ${
               isLight
                 ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
-                : 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20'
+                : 'bg-rose-500/10 border-rose-500/25 text-rose-400 hover:bg-rose-500/20'
             }`}
             title="Bu Ayı Sıfırla"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
 
-          {/* Save Month */}
+          {/* Save Month - Futuristic / Dark */}
           <button
             onClick={onSaveMonth}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-400 active:scale-95 transition-all"
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md font-bold text-xs shadow-md active:scale-95 transition-all ${
+              isLight
+                ? 'bg-gradient-to-r from-[#f72585] via-[#7209b7] to-[#4361ee] text-white shadow-[#4361ee]/25'
+                : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-cyan-500/25'
+            }`}
           >
             <Save className="w-4 h-4" />
             <span>Kaydet</span>
@@ -378,59 +392,72 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
         </div>
       </div>
 
-      {/* Month Title & Date Range */}
+      {/* Month Title & Date Range - FIXED: Visible Dark Text in Light Mode */}
       <div>
         <div className="flex items-baseline gap-2">
-          <h1 className="text-2xl font-black tracking-tight text-slate-100 flex items-center gap-2">
+          <h1
+            className={`text-2xl font-black tracking-tight flex items-center gap-2 ${
+              isLight ? 'text-slate-900' : 'text-slate-100'
+            }`}
+          >
             <span>{currentMonth.name}</span>
-            <Coins className="w-5 h-5 text-cyan-400" />
+            <Coins className={`w-5 h-5 ${isLight ? 'text-[#4361ee]' : 'text-cyan-400'}`} />
           </h1>
           {cycleStartDay !== 1 && (
-            <span className="text-xs font-semibold text-cyan-400 font-mono">
+            <span
+              className={`text-xs font-bold font-mono ${
+                isLight ? 'text-[#f72585]' : 'text-cyan-400'
+              }`}
+            >
               ({cycleStr})
             </span>
           )}
         </div>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className={`text-xs font-mono mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
           Bütçe, gelir ve harcama detaylarınızı düzenleyin
         </p>
       </div>
 
-      {/* Compact Status Card with Pay Debt & Net Remaining */}
+      {/* Status Card with Pay Debt & Net Remaining - Sharp & Stylized */}
       <div
-        className={`p-4 rounded-3xl border backdrop-blur-xl relative overflow-hidden ${
+        className={`p-3.5 rounded-lg border-2 relative overflow-hidden transition-all ${
           isLight
-            ? 'bg-white border-slate-200 shadow-sm'
-            : 'bg-slate-900/80 border-white/[0.08] shadow-xl'
+            ? 'bg-gradient-to-r from-white via-[#fbfcfe] to-[#f4f7fd] border-[#4361ee]/30 shadow-sm'
+            : 'bg-gradient-to-br from-[#1a1428] via-[#141222] to-[#0e101a] border-[#3e3455] shadow-lg'
         }`}
       >
         <div className="flex items-center justify-between gap-3">
-          {/* Quick Pay Debt Button */}
-          <motion.button
-            whileTap={{ scale: 0.96 }}
+          {/* Quick Pay Debt Button - Sharp */}
+          <button
             onClick={onOpenPayDebt}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-xs shadow-lg shadow-rose-500/25 hover:from-rose-400 hover:to-pink-400 transition-all"
+            className={`flex items-center gap-2 px-3 py-2 rounded-md font-bold text-xs shadow-md active:scale-95 transition-all ${
+              isLight
+                ? 'bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white shadow-[#f72585]/20'
+                : 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-rose-500/25'
+            }`}
           >
             <CreditCard className="w-4 h-4" />
             <span>Borç Öde</span>
-          </motion.button>
+          </button>
 
           {/* Right Summary Figures */}
           <div className="text-right">
             <div
               className={`text-2xl font-black font-mono tracking-tight tabular-nums ${
-                isSurplus ? 'text-emerald-400' : 'text-rose-400'
+                isSurplus
+                  ? isLight ? 'text-[#4361ee]' : 'text-emerald-400'
+                  : isLight ? 'text-[#f72585]' : 'text-rose-400'
               }`}
             >
               {isSurplus ? '+' : ''}
               {formatMoney(remaining)}
             </div>
             <div className="flex items-center justify-end gap-2 text-[11px] font-mono mt-0.5">
-              <span className="text-emerald-400 font-semibold">
+              <span className={`font-bold ${isLight ? 'text-[#4361ee]' : 'text-emerald-400'}`}>
                 G: {formatMoney(totalIncome)}
               </span>
-              <span className="text-slate-500">|</span>
-              <span className="text-rose-400 font-semibold">
+              <span className="text-slate-400">|</span>
+              <span className={`font-bold ${isLight ? 'text-[#f72585]' : 'text-rose-400'}`}>
                 Ç: {formatMoney(totalExpense)}
               </span>
             </div>
@@ -441,16 +468,28 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
       {/* Interactive Chart */}
       <MonthlyChart month={currentMonth} isLight={isLight} />
 
-      {/* INCOMES SECTION */}
+      {/* INCOMES SECTION - Sharp & Stylized */}
       <div className="space-y-2.5 pt-1">
         <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <span
+            className={`text-xs font-black uppercase tracking-wider font-mono flex items-center gap-1.5 ${
+              isLight ? 'text-[#4361ee]' : 'text-emerald-400'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-sm ${
+                isLight ? 'bg-[#4361ee]' : 'bg-emerald-400'
+              }`}
+            />
             Gelirler ({formatMoney(totalIncome)})
           </span>
           <button
             onClick={handleAddIncome}
-            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
+            className={`text-xs font-mono font-bold transition-colors flex items-center gap-1 px-2 py-1 rounded-md border ${
+              isLight
+                ? 'bg-[#4361ee]/10 border-[#4361ee]/30 text-[#4361ee] hover:bg-[#4361ee]/20'
+                : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20'
+            }`}
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Gelir Ekle</span>
@@ -466,20 +505,24 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
             return (
               <div
                 key={inc.id}
-                className={`p-3.5 rounded-2xl border transition-all ${
+                className={`p-3 rounded-lg border-2 transition-all ${
                   isPermanent
                     ? isLight
-                      ? 'bg-emerald-50/50 border-emerald-300/80 shadow-sm'
+                      ? 'bg-emerald-50/70 border-emerald-300 shadow-sm'
                       : 'bg-emerald-950/20 border-emerald-500/30'
                     : isLight
-                    ? 'bg-white border-slate-200'
-                    : 'bg-white/[0.03] border-white/[0.08]'
+                    ? 'bg-white border-[#4361ee]/25 shadow-sm'
+                    : 'bg-[#181427] border-[#372d4c]'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     {isPermanent ? (
-                      <span className="text-xs font-bold text-emerald-400 truncate block">
+                      <span
+                        className={`text-xs font-bold truncate block ${
+                          isLight ? 'text-emerald-700' : 'text-emerald-400'
+                        }`}
+                      >
                         {inc.name}
                       </span>
                     ) : (
@@ -488,7 +531,11 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                         list="income-suggestions-list"
                         value={inc.name}
                         onChange={e => handleUpdateIncomeName(index, e.target.value)}
-                        className="bg-transparent text-xs font-semibold text-slate-200 w-full focus:outline-none focus:border-b focus:border-cyan-400"
+                        className={`bg-transparent text-xs font-bold w-full focus:outline-none focus:border-b focus:border-[#4361ee] ${
+                          isLight
+                            ? 'text-slate-900 placeholder:text-slate-400'
+                            : 'text-slate-100 placeholder:text-slate-500'
+                        }`}
                         placeholder="Gelir Adı"
                       />
                     )}
@@ -498,7 +545,7 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                     {isPermanent && inc.targetAmount && (
                       <button
                         onClick={() => handleQuickPay('income', index)}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold text-[11px] shadow-sm hover:bg-emerald-400 active:scale-95 transition-all"
+                        className="px-2.5 py-1 rounded-md bg-emerald-500 text-slate-950 font-bold text-[11px] shadow-sm hover:bg-emerald-400 active:scale-95 transition-all"
                       >
                         💰 {formatMoney(inc.targetAmount)} Al
                       </button>
@@ -507,14 +554,22 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                     {txCount > 0 && (
                       <button
                         onClick={() => toggleTx(`inc-${index}`)}
-                        className="px-2 py-0.5 rounded-lg bg-white/[0.08] text-[10px] font-mono font-bold text-slate-300 hover:bg-white/[0.12] transition-colors flex items-center gap-1"
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold flex items-center gap-1 ${
+                          isLight
+                            ? 'bg-slate-100 text-slate-700'
+                            : 'bg-white/[0.08] text-slate-300'
+                        }`}
                       >
                         <span>{txCount} işlem</span>
                         {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       </button>
                     )}
 
-                    <span className="text-xs font-bold font-mono text-emerald-400 tabular-nums">
+                    <span
+                      className={`text-xs font-black font-mono tabular-nums ${
+                        isLight ? 'text-[#4361ee]' : 'text-emerald-400'
+                      }`}
+                    >
                       {formatMoney(inc.amount)}
                     </span>
 
@@ -522,14 +577,18 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                       <>
                         <button
                           onClick={() => onOpenTransactionModal('income', index, null, inc.name)}
-                          className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center transition-colors"
+                          className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
+                            isLight
+                              ? 'bg-[#4361ee]/10 text-[#4361ee] hover:bg-[#4361ee]/20'
+                              : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                          }`}
                           title="Tutar Ekle"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteIncome(index)}
-                          className="w-7 h-7 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center justify-center transition-colors"
+                          className="w-7 h-7 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors"
                           title="Sil"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -546,23 +605,31 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="mt-2.5 pt-2 border-t border-white/[0.06] space-y-1.5 overflow-hidden"
+                      className={`mt-2.5 pt-2 border-t space-y-1.5 overflow-hidden ${
+                        isLight ? 'border-slate-200' : 'border-white/[0.06]'
+                      }`}
                     >
                       {inc.transactions.map(tx => (
                         <div
                           key={tx.id}
-                          className="flex items-center justify-between text-[11px] py-1 px-2 rounded-lg bg-white/[0.02]"
+                          className={`flex items-center justify-between text-[11px] py-1 px-2 rounded-md ${
+                            isLight ? 'bg-slate-50' : 'bg-white/[0.03]'
+                          }`}
                         >
-                          <span className="text-slate-400">
+                          <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>
                             {tx.date} — {tx.desc}
                           </span>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-emerald-400 font-mono">
+                            <span
+                              className={`font-black font-mono ${
+                                isLight ? 'text-[#4361ee]' : 'text-emerald-400'
+                              }`}
+                            >
                               +{formatMoney(tx.amount)}
                             </span>
                             <button
                               onClick={() => handleDeleteTx('income', index, null, tx.id)}
-                              className="text-slate-500 hover:text-rose-400 p-0.5"
+                              className="text-slate-400 hover:text-rose-500 p-0.5"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
@@ -578,19 +645,31 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
         </div>
       </div>
 
-      {/* EXPENSE CATEGORIES SECTION (USER REQUEST 1: Add at top, USER REQUEST 2: Reorderable) */}
-      <div className="space-y-4 pt-2">
+      {/* EXPENSE CATEGORIES SECTION - Sharp & Stylized */}
+      <div className="space-y-3.5 pt-2">
         <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-400" />
+          <span
+            className={`text-xs font-black uppercase tracking-wider font-mono flex items-center gap-1.5 ${
+              isLight ? 'text-[#f72585]' : 'text-rose-400'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-sm ${
+                isLight ? 'bg-[#f72585]' : 'bg-rose-400'
+              }`}
+            />
             Gider Kategorileri ({formatMoney(totalExpense)})
           </span>
           <button
             onClick={handleAddCategory}
-            className="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20"
+            className={`text-xs font-mono font-bold transition-colors flex items-center gap-1.5 px-3 py-1 rounded-md border ${
+              isLight
+                ? 'bg-[#f72585]/10 border-[#f72585]/30 text-[#f72585] hover:bg-[#f72585]/20'
+                : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20'
+            }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>En Üste Kategori Ekle</span>
+            <span>Kategori Ekle</span>
           </button>
         </div>
 
@@ -602,29 +681,39 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
           return (
             <div
               key={cat.id}
-              className={`p-4 rounded-3xl border transition-all ${
+              className={`p-3.5 rounded-lg border-2 transition-all ${
                 isDebtCat
                   ? isLight
-                    ? 'bg-rose-50/50 border-rose-300/80 shadow-sm'
-                    : 'bg-rose-950/20 border-rose-500/30'
+                    ? 'bg-rose-50/70 border-rose-300 shadow-sm'
+                    : 'bg-[#24121d] border-rose-500/30'
                   : isRecurringCat
                   ? isLight
-                    ? 'bg-blue-50/50 border-blue-300/80 shadow-sm'
-                    : 'bg-blue-950/20 border-blue-500/30'
+                    ? 'bg-blue-50/70 border-blue-300 shadow-sm'
+                    : 'bg-[#141829] border-blue-500/30'
                   : isLight
-                  ? 'bg-white border-slate-200 shadow-sm'
-                  : 'bg-slate-900/60 border-white/[0.08]'
+                  ? 'bg-white border-[#4361ee]/25 shadow-sm'
+                  : 'bg-[#181427] border-[#372d4c]'
               }`}
             >
               {/* Category Header with Reorder Controls */}
-              <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/[0.06] gap-2">
-                {/* Reorder Buttons (Move Up / Down) */}
+              <div
+                className={`flex items-center justify-between mb-2.5 pb-2 border-b gap-2 ${
+                  isLight ? 'border-slate-200' : 'border-white/[0.06]'
+                }`}
+              >
+                {/* Reorder Buttons */}
                 {!isDebtCat && !isRecurringCat && (
-                  <div className="flex items-center gap-0.5 shrink-0 bg-white/[0.04] rounded-lg p-0.5 border border-white/[0.06]">
+                  <div
+                    className={`flex items-center gap-0.5 shrink-0 rounded-md p-0.5 border ${
+                      isLight
+                        ? 'bg-slate-100 border-slate-200'
+                        : 'bg-white/[0.04] border-white/[0.06]'
+                    }`}
+                  >
                     <button
                       onClick={() => handleMoveCategory(catIdx, 'up')}
                       disabled={catIdx === 0}
-                      className="p-1 rounded text-slate-400 hover:text-cyan-400 disabled:opacity-20 disabled:hover:text-slate-400"
+                      className="p-1 rounded text-slate-400 hover:text-[#4361ee] disabled:opacity-20"
                       title="Yukarı Taşı"
                     >
                       <ArrowUp className="w-3 h-3" />
@@ -632,7 +721,7 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                     <button
                       onClick={() => handleMoveCategory(catIdx, 'down')}
                       disabled={catIdx === currentMonth.categories.length - 1}
-                      className="p-1 rounded text-slate-400 hover:text-cyan-400 disabled:opacity-20 disabled:hover:text-slate-400"
+                      className="p-1 rounded text-slate-400 hover:text-[#4361ee] disabled:opacity-20"
                       title="Aşağı Taşı"
                     >
                       <ArrowDown className="w-3 h-3" />
@@ -643,8 +732,10 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                 <div className="flex-1 min-w-0">
                   {isDebtCat || isRecurringCat ? (
                     <span
-                      className={`text-xs font-bold tracking-tight ${
-                        isDebtCat ? 'text-rose-400' : 'text-cyan-400'
+                      className={`text-xs font-black tracking-tight ${
+                        isDebtCat
+                          ? isLight ? 'text-rose-600' : 'text-rose-400'
+                          : isLight ? 'text-blue-600' : 'text-cyan-400'
                       }`}
                     >
                       {cat.name}
@@ -655,20 +746,28 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                       list="category-suggestions-list"
                       value={cat.name}
                       onChange={e => handleUpdateCategoryName(catIdx, e.target.value)}
-                      className="bg-transparent text-xs font-bold text-slate-100 uppercase tracking-wider w-full focus:outline-none focus:border-b focus:border-cyan-400"
+                      className={`bg-transparent text-xs font-black uppercase tracking-wider w-full focus:outline-none focus:border-b focus:border-[#4361ee] ${
+                        isLight
+                          ? 'text-slate-900 placeholder:text-slate-400'
+                          : 'text-slate-100 placeholder:text-slate-500'
+                      }`}
                       placeholder="Kategori Adı"
                     />
                   )}
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold font-mono text-rose-400 tabular-nums">
+                  <span
+                    className={`text-xs font-black font-mono tabular-nums ${
+                      isLight ? 'text-[#f72585]' : 'text-rose-400'
+                    }`}
+                  >
                     {formatMoney(catSum)}
                   </span>
                   {!isDebtCat && !isRecurringCat && (
                     <button
                       onClick={() => handleDeleteCategory(catIdx)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      className="p-1.5 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                       title="Kategoriyi Sil"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -677,7 +776,7 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                 </div>
               </div>
 
-              {/* Items within Category */}
+              {/* Items within Category - Sharp & Stylized */}
               <div className="space-y-2">
                 {cat.items.map((item, itemIdx) => {
                   const isPermanent = !!item.linkedRecurringId;
@@ -689,12 +788,20 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                   return (
                     <div
                       key={item.id}
-                      className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05] space-y-2"
+                      className={`p-2.5 rounded-md border space-y-2 ${
+                        isLight
+                          ? 'bg-[#f8f9fe] border-slate-200'
+                          : 'bg-[#120f1e] border-[#29223a]'
+                      }`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           {isPermanent || isDebtItem ? (
-                            <span className="text-xs font-semibold text-slate-200 truncate block">
+                            <span
+                              className={`text-xs font-bold truncate block ${
+                                isLight ? 'text-slate-800' : 'text-slate-200'
+                              }`}
+                            >
                               {item.name}
                             </span>
                           ) : (
@@ -703,7 +810,11 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                               list="item-suggestions-list"
                               value={item.name}
                               onChange={e => handleUpdateItemName(catIdx, itemIdx, e.target.value)}
-                              className="bg-transparent text-xs text-slate-200 font-medium w-full focus:outline-none focus:border-b focus:border-cyan-400"
+                              className={`bg-transparent text-xs font-bold w-full focus:outline-none focus:border-b focus:border-[#4361ee] ${
+                                isLight
+                                  ? 'text-slate-900 placeholder:text-slate-400'
+                                  : 'text-slate-100 placeholder:text-slate-500'
+                              }`}
                               placeholder="Kalem Adı"
                             />
                           )}
@@ -714,7 +825,7 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                           {isPermanent && item.targetAmount && (
                             <button
                               onClick={() => handleQuickPay('expense', catIdx, itemIdx)}
-                              className="px-2.5 py-1 rounded-lg bg-rose-500 text-white font-bold text-[11px] shadow-sm hover:bg-rose-400 active:scale-95 transition-all"
+                              className="px-2.5 py-1 rounded-md bg-rose-500 text-white font-bold text-[11px] shadow-sm hover:bg-rose-400 active:scale-95 transition-all"
                             >
                               💸 {formatMoney(item.targetAmount)} Öde
                             </button>
@@ -724,7 +835,11 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                           {txCount > 0 && (
                             <button
                               onClick={() => toggleTx(`cat-${catIdx}-${itemIdx}`)}
-                              className="px-2 py-0.5 rounded-lg bg-white/[0.08] text-[10px] font-mono font-bold text-slate-300 hover:bg-white/[0.12] transition-colors flex items-center gap-1"
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold flex items-center gap-1 ${
+                                isLight
+                                  ? 'bg-slate-200 text-slate-700'
+                                  : 'bg-white/[0.08] text-slate-300'
+                              }`}
                             >
                               <span>{txCount} işlem</span>
                               {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -732,7 +847,11 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                           )}
 
                           {/* Item Amount */}
-                          <span className="text-xs font-bold font-mono text-slate-100 tabular-nums">
+                          <span
+                            className={`text-xs font-black font-mono tabular-nums ${
+                              isLight ? 'text-slate-900' : 'text-slate-100'
+                            }`}
+                          >
                             {formatMoney(item.amount)}
                           </span>
 
@@ -743,17 +862,21 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                                 onClick={() =>
                                   onOpenTransactionModal('expense', catIdx, itemIdx, item.name)
                                 }
-                                className="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 flex items-center justify-center transition-colors"
+                                className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
+                                  isLight
+                                    ? 'bg-[#4361ee]/10 text-[#4361ee] hover:bg-[#4361ee]/20'
+                                    : 'bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20'
+                                }`}
                                 title="İşlem Ekle"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleToggleLock(catIdx, itemIdx)}
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                                className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
                                   isLocked
-                                    ? 'bg-white/[0.05] text-slate-400'
-                                    : 'bg-amber-500/10 text-amber-400'
+                                    ? isLight ? 'bg-slate-200 text-slate-500' : 'bg-white/[0.05] text-slate-400'
+                                    : 'bg-amber-500/15 text-amber-500'
                                 }`}
                                 title={isLocked ? 'Sürgü Kilidini Aç' : 'Sürgüyü Kilitle'}
                               >
@@ -761,7 +884,7 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                               </button>
                               <button
                                 onClick={() => handleDeleteItem(catIdx, itemIdx)}
-                                className="w-7 h-7 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center justify-center transition-colors"
+                                className="w-7 h-7 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors"
                                 title="Sil"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -791,7 +914,9 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                             step="100"
                             value={item.amount || 0}
                             onChange={e => handleSliderChange(catIdx, itemIdx, parseFloat(e.target.value))}
-                            className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                            className={`w-full h-1.5 rounded-sm appearance-none cursor-pointer ${
+                              isLight ? 'bg-slate-200 accent-[#4361ee]' : 'bg-white/[0.1] accent-cyan-400'
+                            }`}
                           />
                         </motion.div>
                       )}
@@ -803,23 +928,31 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="mt-2 pt-2 border-t border-white/[0.06] space-y-1.5 overflow-hidden"
+                            className={`mt-2 pt-2 border-t space-y-1.5 overflow-hidden ${
+                              isLight ? 'border-slate-200' : 'border-white/[0.06]'
+                            }`}
                           >
                             {item.transactions.map(tx => (
                               <div
                                 key={tx.id}
-                                className="flex items-center justify-between text-[11px] py-1 px-2 rounded-lg bg-white/[0.02]"
+                                className={`flex items-center justify-between text-[11px] py-1 px-2 rounded-md ${
+                                  isLight ? 'bg-white' : 'bg-white/[0.02]'
+                                }`}
                               >
-                                <span className="text-slate-400">
+                                <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>
                                   {tx.date} — {tx.desc}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-bold text-rose-400 font-mono">
+                                  <span
+                                    className={`font-black font-mono ${
+                                      isLight ? 'text-[#f72585]' : 'text-rose-400'
+                                    }`}
+                                  >
                                     {formatMoney(tx.amount)}
                                   </span>
                                   <button
                                     onClick={() => handleDeleteTx('expense', catIdx, itemIdx, tx.id)}
-                                    className="text-slate-500 hover:text-rose-400 p-0.5"
+                                    className="text-slate-400 hover:text-rose-500 p-0.5"
                                   >
                                     <Trash2 className="w-3 h-3" />
                                   </button>
@@ -838,7 +971,11 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
               {!isDebtCat && !isRecurringCat && (
                 <button
                   onClick={() => handleAddItem(catIdx)}
-                  className="w-full py-2 mt-2 rounded-xl border border-dashed border-white/[0.08] text-xs font-semibold text-slate-400 hover:text-cyan-400 hover:border-cyan-400/40 transition-colors flex items-center justify-center gap-1"
+                  className={`w-full py-1.5 mt-2 rounded-md border border-dashed text-xs font-mono font-bold transition-colors flex items-center justify-center gap-1 ${
+                    isLight
+                      ? 'border-[#4361ee]/30 text-[#4361ee] hover:bg-[#4361ee]/5'
+                      : 'border-white/[0.08] text-slate-400 hover:text-cyan-400 hover:border-cyan-400/40'
+                  }`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Yeni Kalem Ekle</span>

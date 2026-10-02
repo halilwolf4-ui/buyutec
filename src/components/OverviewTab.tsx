@@ -1,6 +1,5 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { AppData, MonthData, TR_MONTHS, TR_MONTHS_SHORT, formatMoney, getCycleString } from '../types';
+import React, { useState, useRef, useMemo } from 'react';
+import { AppData, TR_MONTHS, TR_MONTHS_SHORT, formatMoney, getCycleString } from '../types';
 import { BrandLogo } from './BrandLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { TugOfWarBar } from './TugOfWarBar';
@@ -9,12 +8,12 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  TrendingUp,
-  Sparkles,
   ArrowUpRight,
   User,
   Plus,
-  Coins
+  PiggyBank,
+  Wallet,
+  Activity
 } from 'lucide-react';
 
 interface OverviewTabProps {
@@ -45,12 +44,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const [carouselIndex, setCarouselIndex] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // Total savings portfolio
+  // Total savings/investments portfolio
   const totalSavings = useMemo(() => {
     return (data.savings || []).reduce((sum, s) => sum + (s.amount || 0), 0);
   }, [data.savings]);
 
-  // Calculate accumulated buffer, annual income, expense, and breakdowns
+  // Calculate accumulated cash buffer, annual income, expense, and category breakdowns
   const {
     cashBuffer,
     annualIncome,
@@ -106,10 +105,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     };
   }, [data.months, selectedYear]);
 
-  // Combined Total Tampon (Cash + Savings)
-  const combinedTampon = Math.max(0, cashBuffer) + totalSavings;
-  const savingsPct = combinedTampon > 0 ? Math.round((totalSavings / combinedTampon) * 100) : 0;
-  const cashPct = combinedTampon > 0 ? 100 - savingsPct : 0;
+  // Combined total net worth (Cash Buffer + Investment Portfolio)
+  const totalNetWorth = cashBuffer + totalSavings;
 
   const totalRemainingDebt = useMemo(() => {
     return data.debts.reduce((sum, d) => sum + d.remainingAmount, 0);
@@ -138,16 +135,29 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   };
 
   return (
-    <div className="space-y-4 pb-16">
-      {/* Top Header */}
+    <div className="space-y-3.5 pb-16">
+      {/* Top Header - Sharp & Stylized */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2.5">
           <BrandLogo size={36} withGlow={false} />
           <div>
-            <h1 className="text-xl font-black tracking-tight leading-none text-slate-100 flex items-center gap-1.5">
-              Büyüteç <span className="text-cyan-400 font-extrabold">Bütçe</span>
+            <h1
+              className={`text-xl font-black tracking-tight leading-none flex items-center gap-1.5 ${
+                isLight ? 'text-slate-900' : 'text-slate-100'
+              }`}
+            >
+              Büyüteç{' '}
+              <span
+                className={`font-black ${
+                  isLight
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-[#f72585] via-[#7209b7] to-[#4361ee]'
+                    : 'text-cyan-400'
+                }`}
+              >
+                Bütçe
+              </span>
             </h1>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className={`text-[11px] font-mono mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               {currentUser ? `@${currentUser}` : 'Kişisel Bütçe Asistanı'}
             </p>
           </div>
@@ -160,14 +170,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           {/* User Profile Avatar Trigger */}
           <button
             onClick={onOpenAuth}
-            className={`p-2 rounded-xl border flex items-center justify-center transition-colors ${
+            className={`p-2 rounded-lg border flex items-center justify-center transition-colors ${
               isLight
-                ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                : 'bg-white/[0.05] border-white/[0.08] text-slate-300 hover:bg-white/[0.1]'
+                ? 'bg-white border-[#4361ee]/30 text-[#4361ee] hover:bg-[#4361ee]/10'
+                : 'bg-[#1c182b] border-[#3e3455] text-slate-300 hover:text-white'
             }`}
             title="Kullanıcı & Güvenlik"
           >
-            <User className="w-4 h-4 text-cyan-400" />
+            <User className={`w-4 h-4 ${isLight ? 'text-[#4361ee]' : 'text-cyan-400'}`} />
           </button>
 
           {/* Theme Switcher */}
@@ -175,85 +185,174 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
       </div>
 
-      {/* SWIPEABLE CAROUSEL (USER REQUEST: Slide olarak elle kaydırılabilen Tampon & En Çok Harcananlar) */}
+      {/* SWIPEABLE CAROUSEL - SHARP & STYLIZED */}
       <div className="relative">
         <div
           ref={carouselRef}
           onScroll={handleCarouselScroll}
-          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none gap-3 pb-0.5 touch-pan-x"
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none gap-2.5 pb-0.5 touch-pan-x"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          {/* SLIDE 1: Toplam Birikmiş Tampon */}
+          {/* SLIDE 1: TOPLAM BİRİKMİŞ TAMPON (USER REQUEST: SADECE NAKİT/KASA, BİRİKİMİ KATMA) */}
           <div
-            className={`w-full shrink-0 snap-center p-5 rounded-3xl border relative overflow-hidden transition-all ${
+            className={`w-full shrink-0 snap-center p-4.5 rounded-lg border-2 relative overflow-hidden transition-all ${
               isLight
-                ? 'bg-gradient-to-br from-emerald-50 via-teal-50 to-white border-emerald-200 shadow-sm'
-                : 'bg-gradient-to-br from-[#0c221a] via-[#0d181e] to-[#0f1422] border-emerald-500/30 shadow-lg'
+                ? 'bg-gradient-to-br from-white via-[#f8f9fe] to-[#eef2ff] border-[#4361ee] shadow-[0_4px_20px_rgba(67,97,238,0.12)]'
+                : 'bg-gradient-to-br from-[#1a1428] via-[#141222] to-[#0e101a] border-[#3e3455] shadow-[0_4px_24px_rgba(0,0,0,0.5)]'
             }`}
           >
-            <div className="absolute top-0 right-0 p-5 opacity-10 pointer-events-none text-emerald-400">
-              <Sparkles className="w-20 h-20" />
-            </div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                Toplam Birikmiş Tampon
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
-                Kasa + Yatırımlar
-              </span>
-            </div>
-            <h2 className="text-3xl font-black tabular-nums text-emerald-400 font-mono tracking-tight my-1">
-              {formatMoney(combinedTampon)}
-            </h2>
+            {/* Top Glowing Accent Line */}
+            <div
+              className={`absolute top-0 left-0 right-0 h-1 ${
+                isLight
+                  ? 'bg-gradient-to-r from-[#f72585] via-[#4361ee] to-[#4cc9f0]'
+                  : 'bg-gradient-to-r from-emerald-500 via-cyan-400 to-[#7209b7]'
+              }`}
+            />
 
-            {/* Subtext with Savings Breakdown */}
+            <div className="flex items-center justify-between mb-1.5 pt-0.5">
+              <div className="flex items-center gap-1.5">
+                <Wallet className={`w-4 h-4 ${isLight ? 'text-[#4361ee]' : 'text-emerald-400'}`} />
+                <span
+                  className={`text-[11px] font-black uppercase tracking-wider ${
+                    isLight ? 'text-[#4361ee]' : 'text-emerald-400'
+                  }`}
+                >
+                  TOPLAM BİRİKMİŞ TAMPON
+                </span>
+              </div>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-md font-mono font-bold uppercase tracking-wider border ${
+                  isLight
+                    ? 'bg-[#4361ee]/10 text-[#4361ee] border-[#4361ee]/30'
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                }`}
+              >
+                Nakit Kasa
+              </span>
+            </div>
+
+            {/* BIG BUFFER NUMBER - ONLY CASH/SURPLUS, SAVINGS EXCLUDED */}
+            <div className="my-1.5">
+              <h2
+                className={`text-3xl font-black tabular-nums font-mono tracking-tight ${
+                  cashBuffer < 0
+                    ? 'text-rose-500'
+                    : isLight
+                    ? 'text-slate-900'
+                    : 'text-emerald-400'
+                }`}
+              >
+                {formatMoney(cashBuffer)}
+              </h2>
+            </div>
+
+            {/* SUBTEXT BREAKDOWN: YATIRIM VE BİRİKİM AYRINTISI */}
             <div
               onClick={onOpenSavings}
-              className="mt-2.5 pt-2 border-t border-white/[0.08] cursor-pointer group"
+              className={`mt-2.5 pt-2 border-t cursor-pointer group ${
+                isLight ? 'border-slate-200' : 'border-[#2d2542]'
+              }`}
             >
-              <div className="flex items-center justify-between text-[11px] text-slate-300">
+              <div className="flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-1.5">
-                  <Coins className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>
-                    Tamponun <strong className="text-cyan-400 font-mono">{formatMoney(totalSavings)}</strong> tutarı (%{savingsPct}) birikimde
+                  <PiggyBank className={`w-3.5 h-3.5 ${isLight ? 'text-[#7209b7]' : 'text-cyan-400'}`} />
+                  <span className={isLight ? 'text-slate-700' : 'text-slate-300'}>
+                    Yatırım & Birikim:{' '}
+                    <strong className={`font-mono font-bold ${isLight ? 'text-[#7209b7]' : 'text-cyan-400'}`}>
+                      {formatMoney(totalSavings)}
+                    </strong>
                   </span>
                 </div>
-                <ArrowUpRight className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                <div
+                  className={`flex items-center gap-0.5 text-[10px] font-mono font-bold uppercase tracking-wider ${
+                    isLight ? 'text-[#4361ee]' : 'text-cyan-400'
+                  }`}
+                >
+                  <span>Yatırımlar</span>
+                  <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </div>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
-                <span>Aylık bütçe fazlası kasa tamponu: {formatMoney(Math.max(0, cashBuffer))} (%{cashPct})</span>
-                <span className="text-cyan-400 underline font-medium">Yönet</span>
+
+              <div
+                className={`flex items-center justify-between text-[10px] mt-1 font-mono ${
+                  isLight ? 'text-slate-500' : 'text-[#a89ba5]'
+                }`}
+              >
+                <span>Toplam Finansal Güç (Tampon + Portföy):</span>
+                <span
+                  className={`font-bold ${
+                    isLight ? 'text-[#f72585]' : 'text-slate-200'
+                  }`}
+                >
+                  {formatMoney(totalNetWorth)}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* SLIDE 2: En Çok Harcananlar */}
+          {/* SLIDE 2: EN ÇOK HARCANANLAR (TOP 5) - SHARP & STYLIZED */}
           <div
-            className={`w-full shrink-0 snap-center p-5 rounded-3xl border relative overflow-hidden transition-all ${
+            className={`w-full shrink-0 snap-center p-4.5 rounded-lg border-2 relative overflow-hidden transition-all ${
               isLight
-                ? 'bg-gradient-to-br from-amber-50 via-orange-50 to-white border-amber-200 shadow-sm'
-                : 'bg-gradient-to-br from-[#24170a] via-[#1a141c] to-[#0f1422] border-amber-500/30 shadow-lg'
+                ? 'bg-gradient-to-br from-white via-[#fff5f8] to-[#fef0f4] border-[#f72585] shadow-[0_4px_20px_rgba(247,37,133,0.12)]'
+                : 'bg-gradient-to-br from-[#20131e] via-[#16121f] to-[#0e101a] border-[#52293f] shadow-[0_4px_24px_rgba(0,0,0,0.5)]'
             }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
-                En Çok Harcananlar ({selectedYear})
+            {/* Top Glowing Accent Line */}
+            <div
+              className={`absolute top-0 left-0 right-0 h-1 ${
+                isLight
+                  ? 'bg-gradient-to-r from-[#f72585] to-[#7209b7]'
+                  : 'bg-gradient-to-r from-rose-500 via-amber-500 to-[#7209b7]'
+              }`}
+            />
+
+            <div className="flex items-center justify-between mb-2 pt-0.5">
+              <div className="flex items-center gap-1.5">
+                <Activity className={`w-4 h-4 ${isLight ? 'text-[#f72585]' : 'text-rose-400'}`} />
+                <span
+                  className={`text-[11px] font-black uppercase tracking-wider ${
+                    isLight ? 'text-[#f72585]' : 'text-rose-400'
+                  }`}
+                >
+                  En Çok Harcananlar ({selectedYear})
+                </span>
+              </div>
+              <span
+                className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
+                  isLight
+                    ? 'bg-[#f72585]/10 text-[#f72585] border-[#f72585]/30'
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                }`}
+              >
+                Top 5
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">Top 5 Kategori</span>
             </div>
+
             {topCategories.length === 0 ? (
               <p className="text-xs text-slate-400 py-6 text-center">Bu yıl henüz harcama kaydı yok</p>
             ) : (
-              <div className="space-y-1.5 max-h-[88px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-[96px] overflow-y-auto pr-1">
                 {topCategories.map(([catName, amt], idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between text-xs py-0.5 border-b border-white/[0.04] last:border-none"
+                    className={`flex items-center justify-between text-xs py-1 border-b last:border-none ${
+                      isLight ? 'border-slate-200' : 'border-white/[0.04]'
+                    }`}
                   >
-                    <span className="text-slate-300 truncate max-w-[170px] text-[11px]">
+                    <span
+                      className={`truncate max-w-[170px] text-[11px] font-medium ${
+                        isLight ? 'text-slate-700' : 'text-slate-300'
+                      }`}
+                    >
                       {idx + 1}. {catName}
                     </span>
-                    <span className="font-bold text-rose-400 tabular-nums font-mono text-[11px]">
+                    <span
+                      className={`font-black tabular-nums font-mono text-[11px] ${
+                        isLight ? 'text-[#f72585]' : 'text-rose-400'
+                      }`}
+                    >
                       {formatMoney(amt)}
                     </span>
                   </div>
@@ -263,49 +362,79 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
         </div>
 
-        {/* Carousel Dots indicator */}
+        {/* Carousel Sharp Dots indicator */}
         <div className="flex justify-center items-center gap-1.5 mt-2">
           <button
             onClick={() => scrollToSlide(0)}
-            className={`h-1.5 rounded-full transition-all ${
-              carouselIndex === 0 ? 'w-6 bg-cyan-400' : 'w-2 bg-slate-600/50'
+            className={`h-1 rounded-sm transition-all ${
+              carouselIndex === 0
+                ? isLight
+                  ? 'w-6 bg-[#4361ee]'
+                  : 'w-6 bg-cyan-400'
+                : isLight
+                ? 'w-2 bg-slate-300'
+                : 'w-2 bg-[#3e3455]'
             }`}
             title="Birikmiş Tampon"
           />
           <button
             onClick={() => scrollToSlide(1)}
-            className={`h-1.5 rounded-full transition-all ${
-              carouselIndex === 1 ? 'w-6 bg-amber-400' : 'w-2 bg-slate-600/50'
+            className={`h-1 rounded-sm transition-all ${
+              carouselIndex === 1
+                ? isLight
+                  ? 'w-6 bg-[#f72585]'
+                  : 'w-6 bg-rose-400'
+                : isLight
+                ? 'w-2 bg-slate-300'
+                : 'w-2 bg-[#3e3455]'
             }`}
             title="En Çok Harcananlar"
           />
         </div>
       </div>
 
-      {/* Global Debt Card */}
+      {/* Global Debt Card - Sharp & Stylized */}
       <div
         onClick={onOpenDebtManager}
-        className={`p-4 rounded-3xl border cursor-pointer relative overflow-hidden transition-all group ${
+        className={`p-3.5 rounded-lg border-2 cursor-pointer relative overflow-hidden transition-all group ${
           isLight
-            ? 'bg-gradient-to-r from-rose-50/80 to-pink-50/40 border-rose-200 hover:border-rose-300'
-            : 'bg-gradient-to-r from-[#220d14] via-[#16121d] to-[#0f1422] border-rose-500/25 hover:border-rose-500/40 shadow-md'
+            ? 'bg-gradient-to-r from-white via-[#fff0f4] to-[#ffe5ec] border-[#f72585]/40 hover:border-[#f72585] shadow-sm'
+            : 'bg-gradient-to-r from-[#21121d] via-[#1a1426] to-[#12111d] border-[#4a263c] hover:border-[#7a3b61] shadow-md'
         }`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-              <CreditCard className="w-5 h-5" />
+            <div
+              className={`w-9 h-9 rounded-md border flex items-center justify-center ${
+                isLight
+                  ? 'bg-[#f72585]/10 border-[#f72585]/30 text-[#f72585]'
+                  : 'bg-rose-500/10 border-rose-500/25 text-rose-400'
+              }`}
+            >
+              <CreditCard className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400">
+              <span
+                className={`text-[10px] font-black uppercase tracking-wider ${
+                  isLight ? 'text-[#f72585]' : 'text-rose-400'
+                }`}
+              >
                 Toplam Kalan Borç
               </span>
-              <div className="text-xl font-black tabular-nums text-rose-400 font-mono">
+              <div
+                className={`text-xl font-black tabular-nums font-mono ${
+                  isLight ? 'text-[#f72585]' : 'text-rose-400'
+                }`}
+              >
                 {formatMoney(totalRemainingDebt)}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-xs font-semibold text-slate-400 group-hover:text-rose-400 transition-colors">
+          <div
+            className={`flex items-center gap-1 text-xs font-mono font-bold uppercase tracking-wider transition-colors ${
+              isLight ? 'text-[#f72585]' : 'text-slate-400 group-hover:text-rose-400'
+            }`}
+          >
             <span>Yönet</span>
             <ChevronRight className="w-4 h-4" />
           </div>
@@ -321,44 +450,48 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         isLight={isLight}
       />
 
-      {/* Year Selector */}
-      <div className="flex items-center justify-between px-2 pt-1">
+      {/* Year Selector - Sharp corners */}
+      <div className="flex items-center justify-between px-1 pt-0.5">
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => onYearChange(-1)}
-            className={`p-2 rounded-xl border transition-all ${
+            className={`p-2 rounded-lg border transition-all ${
               isLight
-                ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                : 'bg-slate-900 border-white/[0.08] text-slate-300 hover:bg-white/[0.08]'
+                ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-sm'
+                : 'bg-[#1c182b] border-[#3e3455] text-slate-300 hover:bg-[#252038]'
             }`}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <h3 className="text-lg font-black tracking-tight text-slate-100 px-2 font-mono">
+          <h3
+            className={`text-lg font-black tracking-tight px-2 font-mono ${
+              isLight ? 'text-slate-900' : 'text-slate-100'
+            }`}
+          >
             {selectedYear}
           </h3>
           <button
             onClick={() => onYearChange(1)}
-            className={`p-2 rounded-xl border transition-all ${
+            className={`p-2 rounded-lg border transition-all ${
               isLight
-                ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                : 'bg-slate-900 border-white/[0.08] text-slate-300 hover:bg-white/[0.08]'
+                ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 shadow-sm'
+                : 'bg-[#1c182b] border-[#3e3455] text-slate-300 hover:bg-[#252038]'
             }`}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="text-xs text-slate-400 font-medium">
+        <div className={`text-xs font-mono font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
           Döngü:{' '}
-          <span className="text-cyan-400 font-bold font-mono">
+          <span className={`font-bold ${isLight ? 'text-[#4361ee]' : 'text-cyan-400'}`}>
             {cycleDay === 1 ? '1-30' : `${cycleDay}. Gün`}
           </span>
         </div>
       </div>
 
-      {/* 12 Months Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+      {/* 12 Months Grid - Sharp & Stylized */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
         {Array.from({ length: 12 }).map((_, monthIdx) => {
           const monthId = `${selectedYear}-${monthIdx}`;
           const existingMonth = data.months.find(m => m.id === monthId);
@@ -369,30 +502,36 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <div
               key={monthIdx}
               onClick={() => onSelectMonth(selectedYear, monthIdx)}
-              className={`p-3 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between min-h-[92px] active:scale-[0.97] ${
+              className={`p-2.5 rounded-lg border-2 cursor-pointer select-none transition-all flex flex-col justify-between min-h-[90px] active:scale-[0.97] ${
                 existingMonth
                   ? isLight
-                    ? 'bg-white border-slate-200 hover:border-cyan-400 shadow-sm'
-                    : 'bg-[#101422] border-white/[0.08] hover:border-cyan-400/40 shadow-sm'
+                    ? 'bg-white border-[#4361ee]/30 hover:border-[#4361ee] shadow-sm'
+                    : 'bg-[#181427] border-[#372d4c] hover:border-cyan-400/50 shadow-sm'
                   : isLight
-                  ? 'bg-slate-100/60 border-dashed border-slate-300 text-slate-400 hover:border-cyan-400'
-                  : 'bg-white/[0.02] border-dashed border-white/[0.08] text-slate-500 hover:border-white/[0.2]'
+                  ? 'bg-slate-100/70 border-dashed border-slate-300 text-slate-400 hover:border-[#4361ee]'
+                  : 'bg-[#141220]/60 border-dashed border-[#2f2742] text-slate-500 hover:border-[#524470]'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-200">
+                  <span
+                    className={`text-xs font-black ${
+                      isLight ? 'text-slate-800' : 'text-slate-200'
+                    }`}
+                  >
                     {TR_MONTHS[monthIdx]}
                   </span>
                   {existingMonth && (
                     <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        isNegative ? 'bg-rose-400' : 'bg-emerald-400'
+                      className={`w-1.5 h-1.5 rounded-sm ${
+                        isNegative
+                          ? isLight ? 'bg-[#f72585]' : 'bg-rose-400'
+                          : isLight ? 'bg-[#4361ee]' : 'bg-emerald-400'
                       }`}
                     />
                   )}
                 </div>
-                <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                <div className={`text-[10px] truncate mt-0.5 font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   {cycleDay === 1 ? TR_MONTHS_SHORT[monthIdx] : cycleLabel}
                 </div>
               </div>
@@ -403,8 +542,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     <span>G: {formatMoney(existingMonth.income)}</span>
                   </div>
                   <div
-                    className={`text-xs font-bold font-mono tracking-tight mt-0.5 tabular-nums ${
-                      isNegative ? 'text-rose-400' : 'text-emerald-400'
+                    className={`text-xs font-black font-mono tracking-tight mt-0.5 tabular-nums ${
+                      isNegative
+                        ? isLight ? 'text-[#f72585]' : 'text-rose-400'
+                        : isLight ? 'text-[#4361ee]' : 'text-emerald-400'
                     }`}
                   >
                     {!isNegative && '+'}
@@ -412,7 +553,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center gap-1 text-[11px] text-slate-500 py-1">
+                <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-slate-500 py-1">
                   <Plus className="w-3 h-3" />
                   <span>Başlat</span>
                 </div>

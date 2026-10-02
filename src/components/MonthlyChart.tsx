@@ -156,23 +156,31 @@ export const MonthlyChart: React.FC<MonthlyChartProps> = ({ month, isLight = fal
 
   return (
     <div
-      className={`rounded-2xl p-4 border transition-all relative overflow-hidden backdrop-blur-md ${
+      className={`rounded-lg p-3.5 border-2 transition-all relative overflow-hidden ${
         isLight
-          ? 'bg-white/80 border-slate-200/80 shadow-sm'
-          : 'bg-slate-900/60 border-white/[0.08] shadow-lg'
+          ? 'bg-white border-[#4361ee]/25 shadow-sm'
+          : 'bg-[#181427] border-[#372d4c] shadow-lg'
       }`}
     >
       {/* Header with Title & Chart Mode Toggle */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+          <div
+            className={`w-6 h-6 rounded-md flex items-center justify-center ${
+              isLight ? 'bg-[#4361ee]/15 text-[#4361ee]' : 'bg-cyan-500/10 text-cyan-400'
+            }`}
+          >
             <Activity className="w-3.5 h-3.5" />
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-200 tracking-tight">
+            <span
+              className={`text-xs font-black tracking-tight font-mono ${
+                isLight ? 'text-slate-800' : 'text-slate-200'
+              }`}
+            >
               {chartType === 'line' ? 'Günlük Harcama Trendi' : 'Kategori Dağılımı'}
             </span>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-slate-400 font-mono">
               {chartType === 'line'
                 ? hoveredDay
                   ? `Gün ${hoveredDay.day}: ${formatMoney(hoveredDay.amount)}`
@@ -182,19 +190,21 @@ export const MonthlyChart: React.FC<MonthlyChartProps> = ({ month, isLight = fal
           </div>
         </div>
 
-        {/* Toggle Pills */}
+        {/* Toggle Pills - Sharp */}
         <div
-          className={`flex items-center p-0.5 rounded-xl border ${
+          className={`flex items-center p-0.5 rounded-md border ${
             isLight
               ? 'bg-slate-100 border-slate-200'
-              : 'bg-slate-950/70 border-white/[0.08]'
+              : 'bg-[#120f1e] border-[#372d4c]'
           }`}
         >
           <button
             onClick={() => setChartType('line')}
-            className={`p-1.5 rounded-lg transition-all ${
+            className={`p-1.5 rounded-md transition-all ${
               chartType === 'line'
-                ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
+                ? isLight
+                  ? 'bg-[#4361ee] text-white shadow-sm'
+                  : 'bg-cyan-400 text-slate-950 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
             title="Çizgi Grafik"

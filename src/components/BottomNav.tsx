@@ -17,10 +17,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none flex justify-center">
       <div
-        className={`w-full max-w-md pointer-events-auto h-16 px-4 pb-safe flex items-center justify-around border-t transition-none ${
+        className={`w-full max-w-md pointer-events-auto h-16 px-3 pb-safe flex items-center justify-around border-t transition-none ${
           isLight
-            ? 'bg-white border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]'
-            : 'bg-[#0b0e17] border-white/[0.08] shadow-[0_-8px_30px_rgba(0,0,0,0.8)]'
+            ? 'bg-white border-[#e2e8f0] shadow-[0_-4px_24px_rgba(67,97,238,0.08)]'
+            : 'bg-[#141220] border-[#2e2540] shadow-[0_-8px_30px_rgba(0,0,0,0.8)]'
         }`}
       >
         {/* Tab 1: Genel Bakış */}
@@ -28,17 +28,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onTabChange('overview')}
           className={`flex flex-col items-center justify-center py-1 px-2 relative group flex-1 ${
             activeTab === 'overview'
-              ? 'text-cyan-400 font-bold'
-              : 'text-slate-400 hover:text-slate-200 font-medium'
+              ? isLight ? 'text-[#4361ee] font-black' : 'text-cyan-400 font-bold'
+              : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-[#8d8299] hover:text-slate-200'
           }`}
         >
           <div className="relative">
             <LayoutDashboard className="w-5 h-5" />
             {activeTab === 'overview' && (
-              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              <span
+                className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-sm ${
+                  isLight ? 'bg-[#4361ee]' : 'bg-cyan-400'
+                }`}
+              />
             )}
           </div>
-          <span className="text-[10px] tracking-tight mt-1">Genel Bakış</span>
+          <span className="text-[10px] font-mono tracking-tight mt-1">Genel</span>
         </button>
 
         {/* Tab 2: Bu Ay */}
@@ -46,25 +50,31 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onTabChange('this-month')}
           className={`flex flex-col items-center justify-center py-1 px-2 relative group flex-1 ${
             activeTab === 'this-month'
-              ? 'text-cyan-400 font-bold'
-              : 'text-slate-400 hover:text-slate-200 font-medium'
+              ? isLight ? 'text-[#f72585] font-black' : 'text-cyan-400 font-bold'
+              : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-[#8d8299] hover:text-slate-200'
           }`}
         >
           <div className="relative">
             <div
-              className={`p-1 rounded-xl ${
+              className={`p-1 rounded-md ${
                 activeTab === 'this-month'
-                  ? 'bg-cyan-500/20 text-cyan-400'
-                  : 'text-slate-400'
+                  ? isLight
+                    ? 'bg-[#f72585]/10 text-[#f72585]'
+                    : 'bg-cyan-500/20 text-cyan-400'
+                  : ''
               }`}
             >
               <Coins className="w-5 h-5" />
             </div>
             {activeTab === 'this-month' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              <span
+                className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-sm ${
+                  isLight ? 'bg-[#f72585]' : 'bg-cyan-400'
+                }`}
+              />
             )}
           </div>
-          <span className="text-[10px] tracking-tight mt-0.5">Bu Ay</span>
+          <span className="text-[10px] font-mono tracking-tight mt-0.5">Bu Ay</span>
         </button>
 
         {/* Tab 3: Birikim */}
@@ -72,25 +82,31 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onTabChange('savings')}
           className={`flex flex-col items-center justify-center py-1 px-2 relative group flex-1 ${
             activeTab === 'savings'
-              ? 'text-cyan-400 font-bold'
-              : 'text-slate-400 hover:text-slate-200 font-medium'
+              ? isLight ? 'text-[#7209b7] font-black' : 'text-cyan-400 font-bold'
+              : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-[#8d8299] hover:text-slate-200'
           }`}
         >
           <div className="relative">
             <div
-              className={`p-1 rounded-xl ${
+              className={`p-1 rounded-md ${
                 activeTab === 'savings'
-                  ? 'bg-cyan-500/20 text-cyan-400'
-                  : 'text-slate-400'
+                  ? isLight
+                    ? 'bg-[#7209b7]/10 text-[#7209b7]'
+                    : 'bg-cyan-500/20 text-cyan-400'
+                  : ''
               }`}
             >
               <PiggyBank className="w-5 h-5" />
             </div>
             {activeTab === 'savings' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              <span
+                className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-sm ${
+                  isLight ? 'bg-[#7209b7]' : 'bg-cyan-400'
+                }`}
+              />
             )}
           </div>
-          <span className="text-[10px] tracking-tight mt-0.5">Birikim</span>
+          <span className="text-[10px] font-mono tracking-tight mt-0.5">Birikim</span>
         </button>
 
         {/* Tab 4: Ayarlar */}
@@ -98,17 +114,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onTabChange('settings')}
           className={`flex flex-col items-center justify-center py-1 px-2 relative group flex-1 ${
             activeTab === 'settings'
-              ? 'text-cyan-400 font-bold'
-              : 'text-slate-400 hover:text-slate-200 font-medium'
+              ? isLight ? 'text-[#4361ee] font-black' : 'text-cyan-400 font-bold'
+              : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-[#8d8299] hover:text-slate-200'
           }`}
         >
           <div className="relative">
             <Settings className="w-5 h-5" />
             {activeTab === 'settings' && (
-              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              <span
+                className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-sm ${
+                  isLight ? 'bg-[#4361ee]' : 'bg-cyan-400'
+                }`}
+              />
             )}
           </div>
-          <span className="text-[10px] tracking-tight mt-1">Ayarlar</span>
+          <span className="text-[10px] font-mono tracking-tight mt-1">Ayarlar</span>
         </button>
       </div>
     </div>

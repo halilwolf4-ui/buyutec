@@ -591,7 +591,7 @@ export default function App() {
   return (
     <div
       className={`min-h-screen w-full flex flex-col items-center justify-start ${
-        isLight ? 'bg-[#f0f4f9] text-slate-900' : 'bg-[#07090e] text-slate-100'
+        isLight ? 'bg-[#f4f6fc] text-[#14172c]' : 'bg-[#0d0f17] text-[#e2dbe6]'
       }`}
     >
       {/* Toast Notification */}
@@ -601,12 +601,12 @@ export default function App() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-2xl border flex items-center gap-2 text-xs font-bold tracking-tight ${
+            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-2xl border flex items-center gap-2 text-xs font-mono font-bold tracking-tight ${
               toast.type === 'error'
-                ? 'bg-rose-500 border-rose-400 text-white'
+                ? isLight ? 'bg-[#f72585] border-[#f72585] text-white' : 'bg-rose-600 border-rose-500 text-white'
                 : toast.type === 'info'
-                ? 'bg-cyan-500 border-cyan-400 text-slate-950'
-                : 'bg-emerald-500 border-emerald-400 text-slate-950'
+                ? isLight ? 'bg-[#4361ee] border-[#4361ee] text-white' : 'bg-cyan-500 border-cyan-400 text-slate-950'
+                : isLight ? 'bg-[#7209b7] border-[#7209b7] text-white' : 'bg-emerald-500 border-emerald-400 text-slate-950'
             }`}
           >
             {toast.type === 'error' ? (
@@ -622,7 +622,7 @@ export default function App() {
       {/* Main Responsive Mobile App Container */}
       <div
         className={`w-full max-w-md min-h-screen flex flex-col justify-start relative shadow-2xl ${
-          isLight ? 'bg-[#ffffff]' : 'bg-[#0b0e17]'
+          isLight ? 'bg-[#ffffff] border-x border-[#e2e8f0]' : 'bg-[#141220] border-x border-[#2b233c]'
         }`}
       >
         {/* Main Content Area - Instant Tab Switching without Lag */}

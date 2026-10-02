@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatMoney } from '../types';
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, X } from 'lucide-react';
 
 interface TugOfWarBarProps {
   income: number;
@@ -45,133 +45,163 @@ export const TugOfWarBar: React.FC<TugOfWarBarProps> = ({
   const isSurplus = netDiff >= 0;
 
   return (
-    <div className="relative mb-6">
+    <div className="relative mb-5">
       {/* Title & Quick Stats */}
-      <div className="flex items-center justify-between mb-2.5 px-0.5">
+      <div className="flex items-center justify-between mb-2 px-0.5">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <span
+            className={`text-xs font-black uppercase tracking-wider font-mono ${
+              isLight ? 'text-slate-700' : 'text-slate-300'
+            }`}
+          >
             Yıllık Denge
           </span>
-          <span className="text-[11px] text-slate-500 font-normal">
-            (Detay için dokun)
-          </span>
+          <span className="text-[10px] text-slate-500 font-mono">(Dokun & Gör)</span>
         </div>
-        <div className="flex items-center gap-1 text-xs font-semibold tabular-nums">
-          <span className={isSurplus ? 'text-emerald-400' : 'text-rose-400'}>
+        <div className="flex items-center gap-1 text-xs font-mono font-bold tabular-nums">
+          <span
+            className={
+              isSurplus
+                ? isLight ? 'text-[#4361ee]' : 'text-emerald-400'
+                : isLight ? 'text-[#f72585]' : 'text-rose-400'
+            }
+          >
             {isSurplus ? '+' : ''}{formatMoney(netDiff)}
           </span>
-          <span className="text-[11px] text-slate-400 font-normal">net</span>
+          <span className="text-[10px] text-slate-400">net</span>
         </div>
       </div>
 
-      {/* Main Bar Track */}
+      {/* Main Bar Track - Sharp & Stylized */}
       <div
-        className={`relative h-4 rounded-xl overflow-hidden cursor-pointer select-none p-0.5 shadow-inner transition-colors ${
+        className={`relative h-4 rounded-md overflow-hidden cursor-pointer select-none p-0.5 border shadow-inner transition-colors ${
           isLight
-            ? 'bg-slate-200/80 border border-slate-300/60'
-            : 'bg-slate-900/90 border border-white/[0.08]'
+            ? 'bg-slate-100 border-[#4361ee]/20'
+            : 'bg-[#120f1e] border-[#372d4c]'
         }`}
       >
-        <div className="flex h-full w-full rounded-lg overflow-hidden relative">
+        <div className="flex h-full w-full rounded-sm overflow-hidden relative">
           {/* Income Side */}
-          <motion.div
-            initial={{ width: '50%' }}
-            animate={{ width: `${incomePct}%` }}
-            transition={{ type: 'spring', damping: 20, stiffness: 120 }}
+          <div
+            style={{ width: `${incomePct}%` }}
             onClick={() => setActiveTooltip(activeTooltip === 'income' ? null : 'income')}
-            className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 relative group flex items-center justify-start pl-2"
+            className={`h-full relative flex items-center justify-start pl-2 transition-all ${
+              isLight
+                ? 'bg-gradient-to-r from-[#3a0ca3] via-[#4361ee] to-[#4cc9f0]'
+                : 'bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-400'
+            }`}
           >
             {incomePct > 18 && (
-              <span className="text-[9px] font-bold text-slate-950 uppercase tracking-wider truncate">
+              <span className="text-[9px] font-black text-white uppercase tracking-wider font-mono truncate">
                 Gelir %{Math.round((income / (total || 1)) * 100)}
               </span>
             )}
-            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </motion.div>
+          </div>
 
           {/* Center Dividing Notch */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-white/40 z-10 shadow-sm pointer-events-none" />
+          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-white/70 z-10 pointer-events-none" />
 
           {/* Expense Side */}
-          <motion.div
-            initial={{ width: '50%' }}
-            animate={{ width: `${expensePct}%` }}
-            transition={{ type: 'spring', damping: 20, stiffness: 120 }}
+          <div
+            style={{ width: `${expensePct}%` }}
             onClick={() => setActiveTooltip(activeTooltip === 'expense' ? null : 'expense')}
-            className="h-full bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 relative group flex items-center justify-end pr-2"
+            className={`h-full relative flex items-center justify-end pr-2 transition-all ${
+              isLight
+                ? 'bg-gradient-to-r from-[#7209b7] via-[#f72585] to-[#f72585]'
+                : 'bg-gradient-to-r from-rose-500 via-pink-600 to-[#7209b7]'
+            }`}
           >
             {expensePct > 18 && (
-              <span className="text-[9px] font-bold text-white uppercase tracking-wider truncate">
+              <span className="text-[9px] font-black text-white uppercase tracking-wider font-mono truncate">
                 Gider %{Math.round((expense / (total || 1)) * 100)}
               </span>
             )}
-            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </motion.div>
+          </div>
         </div>
       </div>
 
       {/* Sub-label indicators */}
-      <div className="flex justify-between items-center mt-1.5 px-1 text-[11px] font-medium text-slate-400">
+      <div className="flex justify-between items-center mt-1.5 px-0.5 text-[11px] font-mono text-slate-400">
         <button
           onClick={() => setActiveTooltip(activeTooltip === 'income' ? null : 'income')}
-          className="flex items-center gap-1 hover:text-emerald-400 transition-colors"
+          className={`flex items-center gap-1.5 transition-colors ${
+            isLight ? 'hover:text-[#4361ee]' : 'hover:text-emerald-400'
+          }`}
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
-          <span>Gelirler ({formatMoney(income)})</span>
+          <span
+            className={`w-2 h-2 rounded-sm inline-block ${
+              isLight ? 'bg-[#4361ee]' : 'bg-emerald-400'
+            }`}
+          />
+          <span className="font-bold">Gelir ({formatMoney(income)})</span>
         </button>
         <button
           onClick={() => setActiveTooltip(activeTooltip === 'expense' ? null : 'expense')}
-          className="flex items-center gap-1 hover:text-rose-400 transition-colors"
+          className={`flex items-center gap-1.5 transition-colors ${
+            isLight ? 'hover:text-[#f72585]' : 'hover:text-rose-400'
+          }`}
         >
-          <span>Giderler ({formatMoney(expense)})</span>
-          <span className="w-2 h-2 rounded-full bg-rose-400 inline-block" />
+          <span className="font-bold">Gider ({formatMoney(expense)})</span>
+          <span
+            className={`w-2 h-2 rounded-sm inline-block ${
+              isLight ? 'bg-[#f72585]' : 'bg-rose-400'
+            }`}
+          />
         </button>
       </div>
 
-      {/* Tooltip / Breakdown Card */}
+      {/* Tooltip / Breakdown Card - Sharp corners */}
       <AnimatePresence>
         {activeTooltip && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            transition={{ duration: 0.18 }}
-            className={`mt-3 p-3.5 rounded-2xl border shadow-2xl backdrop-blur-xl z-20 ${
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className={`mt-2.5 p-3 rounded-lg border-2 shadow-2xl z-20 ${
               isLight
-                ? 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-300/40'
-                : 'bg-slate-900/95 border-white/[0.1] text-slate-100 shadow-black/80'
+                ? 'bg-white border-[#4361ee]/40 text-slate-900 shadow-slate-300/40'
+                : 'bg-[#181427] border-[#3e3455] text-slate-100 shadow-black'
             }`}
           >
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
                 {activeTooltip === 'income' ? (
-                  <div className="p-1 rounded-lg bg-emerald-500/10 text-emerald-400">
+                  <div
+                    className={`p-1 rounded-md ${
+                      isLight ? 'bg-[#4361ee]/15 text-[#4361ee]' : 'bg-emerald-500/15 text-emerald-400'
+                    }`}
+                  >
                     <TrendingUp className="w-3.5 h-3.5" />
                   </div>
                 ) : (
-                  <div className="p-1 rounded-lg bg-rose-500/10 text-rose-400">
+                  <div
+                    className={`p-1 rounded-md ${
+                      isLight ? 'bg-[#f72585]/15 text-[#f72585]' : 'bg-rose-500/15 text-rose-400'
+                    }`}
+                  >
                     <TrendingDown className="w-3.5 h-3.5" />
                   </div>
                 )}
                 <div>
-                  <h4 className="text-xs font-bold leading-none">
+                  <h4 className="text-xs font-black font-mono leading-none">
                     {activeTooltip === 'income' ? 'Yıllık Gelir Dağılımı' : 'Yıllık Gider Dağılımı'}
                   </h4>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-slate-400 font-mono">
                     Toplam: {formatMoney(activeTotal)}
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => setActiveTooltip(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/[0.05] transition-colors"
+                className="p-1 rounded-md text-slate-400 hover:text-slate-100 hover:bg-white/[0.08] transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {items.length === 0 ? (
-              <p className="text-center py-4 text-xs text-slate-400">Kayıtlı veri bulunamadı</p>
+              <p className="text-center py-3 text-xs text-slate-400 font-mono">Kayıtlı veri bulunamadı</p>
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {items.map(([name, amount], idx) => {
@@ -179,28 +209,29 @@ export const TugOfWarBar: React.FC<TugOfWarBarProps> = ({
                   return (
                     <div key={idx} className="space-y-1">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium truncate max-w-[170px] text-slate-300">
+                        <span className={`font-bold truncate max-w-[170px] ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                           {name}
                         </span>
                         <div className="flex items-center gap-2 tabular-nums">
                           <span className="text-slate-400 text-[11px] font-mono">%{pct}</span>
                           <span
-                            className={`font-semibold text-[11px] ${
-                              activeTooltip === 'income' ? 'text-emerald-400' : 'text-rose-400'
+                            className={`font-black font-mono text-[11px] ${
+                              activeTooltip === 'income'
+                                ? isLight ? 'text-[#4361ee]' : 'text-emerald-400'
+                                : isLight ? 'text-[#f72585]' : 'text-rose-400'
                             }`}
                           >
                             {formatMoney(amount)}
                           </span>
                         </div>
                       </div>
-                      {/* Micro progress line */}
-                      <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{ duration: 0.4, delay: idx * 0.04 }}
-                          className={`h-full rounded-full ${
-                            activeTooltip === 'income' ? 'bg-emerald-400' : 'bg-rose-400'
+                      <div className="h-1 rounded-sm bg-black/20 overflow-hidden">
+                        <div
+                          style={{ width: `${pct}%` }}
+                          className={`h-full rounded-sm ${
+                            activeTooltip === 'income'
+                              ? isLight ? 'bg-[#4361ee]' : 'bg-emerald-400'
+                              : isLight ? 'bg-[#f72585]' : 'bg-rose-400'
                           }`}
                         />
                       </div>
