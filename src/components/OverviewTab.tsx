@@ -93,7 +93,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
     const sortedCats = Object.entries(catItemTotals)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+      .slice(0, 10);
 
     return {
       cashBuffer: acc,
@@ -291,7 +291,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
           </div>
 
-          {/* SLIDE 2: EN ÇOK HARCANANLAR (TOP 5) - SHARP & STYLIZED */}
+          {/* SLIDE 2: EN ÇOK HARCANANLAR (TOP 10) - SHARP & STYLIZED */}
           <div
             className={`w-full shrink-0 snap-center p-4.5 rounded-lg border-2 relative overflow-hidden transition-all ${
               isLight
@@ -326,7 +326,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
                 }`}
               >
-                Top 5
+                Top 10
               </span>
             </div>
 
