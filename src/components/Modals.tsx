@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Debt, RecurringItem, formatMoney } from '../types';
 import {
@@ -7,7 +7,16 @@ import {
   Repeat,
   Plus,
   Trash2,
-  ChevronDown
+  ChevronDown,
+  Tv,
+  Calendar,
+  Sparkles,
+  Clock,
+  Music,
+  Wifi,
+  Home,
+  Dumbbell,
+  Tag
 } from 'lucide-react';
 
 interface ModalWrapperProps {
@@ -594,15 +603,34 @@ export const PayDebtModal: React.FC<PayDebtModalProps> = ({
   );
 };
 
-/* --- 4. RECURRING MANAGER MODAL --- */
+/* --- 4. RECURRING MANAGER & SUBSCRIPTION HUB MODAL --- */
 interface RecurringManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
   recurring: RecurringItem[];
-  onAddRecurring: (type: 'income' | 'expense', name: string, amount: number) => void;
+  onAddRecurring: (
+    type: 'income' | 'expense',
+    name: string,
+    amount: number,
+    paymentDay?: number,
+    isSubscription?: boolean,
+    categoryTag?: string
+  ) => void;
   onDeleteRecurring: (id: string) => void;
   isLight?: boolean;
 }
+
+const CATEGORY_PRESETS = [
+  'Dizi/Film',
+  'Müzik',
+  'İnternet',
+  'Kira',
+  'Aidat',
+  'Spor/Gym',
+  'Yazılım',
+  'Maaş',
+  'Diğer'
+];
 
 export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
   isOpen,
@@ -612,89 +640,249 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
   onDeleteRecurring,
   isLight = false
 }) => {
-  const [type, setType] = useState<'income' | 'expense'>('income');
+  const [type, setType] = useState<'income' | 'expense'>('expense');
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
+  const [paymentDay, setPaymentDay] = useState<string>('15');
+  const [isSubscription, setIsSubscription] = useState<boolean>(false);
+  const [categoryTag, setCategoryTag] = useState<string>('Dizi/Film');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'subscriptions' | 'fixed_expenses' | 'incomes'>('all');
+
+  // Stats
+  const { totalSubscriptions, totalExpenses, totalIncomes, subCount, expCount } = useMemo(() => {
+    let subTot = 0;
+    let subC = 0;
+    let expTot = 0;
+    let expC = 0;
+    let incTot = 0;
+
+    recurring.forEach(item => {
+      if (item.type === 'expense') {
+        expTot += item.amount;
+        expC++;
+        if (item.isSubscription) {
+          subTot += item.amount;
+          subC++;
+        }
+      } else {
+        incTot += item.amount;
+      }
+    });
+
+    return {
+      totalSubscriptions: subTot,
+      totalExpenses: expTot,
+      totalIncomes: incTot,
+      subCount: subC,
+      expCount: expC
+    };
+  }, [recurring]);
+
+  // Filtered and sorted by payment day
+  const filteredItems = useMemo(() => {
+    return recurring
+      .filter(item => {
+        if (activeFilter === 'subscriptions') return item.type === 'expense' && item.isSubscription;
+        if (activeFilter === 'fixed_expenses') return item.type === 'expense' && !item.isSubscription;
+        if (activeFilter === 'incomes') return item.type === 'income';
+        return true;
+      })
+      .sort((a, b) => (a.paymentDay || 1) - (b.paymentDay || 1));
+  }, [recurring, activeFilter]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     const amt = parseFloat(amount);
+    const day = parseInt(paymentDay, 10);
     if (!name.trim() || isNaN(amt) || amt <= 0) {
-      alert('Lütfen tüm alanları geçerli şekilde doldurun.');
+      alert('Lütfen geçerli bir isim ve tutar giriniz.');
       return;
     }
-    onAddRecurring(type, name.trim(), amt);
+    const safeDay = !isNaN(day) && day >= 1 && day <= 31 ? day : 1;
+
+    onAddRecurring(
+      type,
+      name.trim(),
+      amt,
+      safeDay,
+      type === 'expense' ? isSubscription : false,
+      type === 'expense' ? categoryTag : 'Maaş'
+    );
+
     setName('');
     setAmount('');
+    setIsSubscription(false);
   };
 
   return (
     <BottomSheetModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Kalıcı İşlemler"
-      subtitle="Her ay sabit olan gelir ve giderleriniz"
-      icon={<Repeat className="w-4 h-4 text-cyan-400" />}
+      title="Abonelik & Sabit Fatura Takvimi"
+      subtitle="Tekrarlayan gelir, kira, fatura ve dijital abonelikleriniz"
+      icon={<Tv className="w-4 h-4 text-cyan-400" />}
       isLight={isLight}
     >
-      <div className="space-y-3">
-        <p className={`text-xs font-mono leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-          Maaş, Kira, Aidat gibi kalemler her yeni ayda otomatik olarak hazır bekler.
-        </p>
+      <div className="space-y-3.5">
+        {/* Subscription Hub Banner - Modern Highlight */}
+        <div
+          className={`p-3 rounded-lg border-2 relative overflow-hidden transition-all ${
+            isLight
+              ? 'bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-[#4361ee]/30 text-slate-800 shadow-sm'
+              : 'bg-gradient-to-r from-[#181427] via-[#1c1432] to-[#120f1e] border-[#4b3c6e] text-slate-100 shadow-md'
+          }`}
+        >
+          <div className="flex items-center gap-1.5 mb-1 text-[11px] font-mono font-black uppercase tracking-wider text-cyan-400">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Aylık Sabit Yük Analizi</span>
+          </div>
 
-        {/* Existing Items */}
-        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-          {recurring.length === 0 ? (
-            <p className="text-xs text-slate-400 font-mono text-center py-3">Kayıtlı kalıcı işlem yok.</p>
+          <p className="text-xs font-bold leading-snug">
+            Bu ay toplam <span className="text-rose-500 font-black">{expCount} adet</span> sabit ödemeye{' '}
+            <span className="text-rose-500 font-black font-mono">{formatMoney(totalExpenses)}</span> ödüyorsun.
+            {subCount > 0 && (
+              <span className={`block text-[11px] mt-0.5 font-normal ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                Bunun <strong className={isLight ? 'text-[#7209b7]' : 'text-cyan-300'}>{formatMoney(totalSubscriptions)}</strong> tutarı ({subCount} adet) Netflix, Spotify vb. aboneliklerden oluşuyor.
+              </span>
+            )}
+          </p>
+
+          {/* Mini Stat Pills */}
+          <div className="grid grid-cols-3 gap-1.5 mt-2.5 pt-2 border-t border-white/10 text-center">
+            <div className={`p-1.5 rounded-md ${isLight ? 'bg-white/80' : 'bg-black/30'}`}>
+              <div className="text-[9px] font-mono text-slate-400">Abonelikler</div>
+              <div className="text-xs font-black font-mono text-cyan-400">{formatMoney(totalSubscriptions)}</div>
+            </div>
+            <div className={`p-1.5 rounded-md ${isLight ? 'bg-white/80' : 'bg-black/30'}`}>
+              <div className="text-[9px] font-mono text-slate-400">Sabit Gider</div>
+              <div className="text-xs font-black font-mono text-rose-400">{formatMoney(totalExpenses)}</div>
+            </div>
+            <div className={`p-1.5 rounded-md ${isLight ? 'bg-white/80' : 'bg-black/30'}`}>
+              <div className="text-[9px] font-mono text-slate-400">Sabit Gelir</div>
+              <div className="text-xs font-black font-mono text-emerald-400">{formatMoney(totalIncomes)}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none text-[11px] font-mono font-bold">
+          <button
+            onClick={() => setActiveFilter('all')}
+            className={`px-2.5 py-1 rounded-md transition-all shrink-0 border ${
+              activeFilter === 'all'
+                ? isLight ? 'bg-[#4361ee] text-white border-[#4361ee]' : 'bg-cyan-500 text-slate-950 border-cyan-400'
+                : isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-[#141220] text-slate-400 border-[#372d4c]'
+            }`}
+          >
+            Tümü ({recurring.length})
+          </button>
+          <button
+            onClick={() => setActiveFilter('subscriptions')}
+            className={`px-2.5 py-1 rounded-md transition-all shrink-0 border flex items-center gap-1 ${
+              activeFilter === 'subscriptions'
+                ? isLight ? 'bg-[#7209b7] text-white border-[#7209b7]' : 'bg-purple-500 text-white border-purple-400'
+                : isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-[#141220] text-slate-400 border-[#372d4c]'
+            }`}
+          >
+            <Tv className="w-3 h-3" />
+            <span>Abonelikler ({subCount})</span>
+          </button>
+          <button
+            onClick={() => setActiveFilter('fixed_expenses')}
+            className={`px-2.5 py-1 rounded-md transition-all shrink-0 border flex items-center gap-1 ${
+              activeFilter === 'fixed_expenses'
+                ? isLight ? 'bg-rose-500 text-white border-rose-500' : 'bg-rose-500 text-white border-rose-400'
+                : isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-[#141220] text-slate-400 border-[#372d4c]'
+            }`}
+          >
+            <Home className="w-3 h-3" />
+            <span>Kira & Fatura</span>
+          </button>
+          <button
+            onClick={() => setActiveFilter('incomes')}
+            className={`px-2.5 py-1 rounded-md transition-all shrink-0 border flex items-center gap-1 ${
+              activeFilter === 'incomes'
+                ? isLight ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-500 text-slate-950 border-emerald-400'
+                : isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-[#141220] text-slate-400 border-[#372d4c]'
+            }`}
+          >
+            <span>💰 Gelirler</span>
+          </button>
+        </div>
+
+        {/* Existing Items / Schedule Timeline List */}
+        <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+          {filteredItems.length === 0 ? (
+            <p className="text-xs text-slate-400 font-mono text-center py-4 border-2 border-dashed rounded-md">
+              Bu filtrede kayıtlı işlem yok.
+            </p>
           ) : (
-            recurring.map(item => (
+            filteredItems.map(item => (
               <div
                 key={item.id}
-                className={`p-2.5 rounded-md border-2 flex items-center justify-between gap-2 ${
-                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#120f1e] border-[#372d4c]'
+                className={`p-2.5 rounded-md border-2 flex items-center justify-between gap-2 transition-all ${
+                  isLight ? 'bg-slate-50 border-slate-200 hover:border-[#4361ee]/40' : 'bg-[#120f1e] border-[#372d4c] hover:border-cyan-500/40'
                 }`}
               >
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-xs font-black ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`text-xs font-black truncate ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
                       {item.name}
                     </span>
-                    <span
-                      className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm ${
-                        item.type === 'income'
-                          ? isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/15 text-emerald-400'
-                          : isLight ? 'bg-rose-100 text-rose-700' : 'bg-rose-500/15 text-rose-400'
-                      }`}
-                    >
-                      {item.type === 'income' ? 'Gelir' : 'Gider'}
+
+                    {item.isSubscription && (
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-sm border ${
+                        isLight ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                      }`}>
+                        Abonelik
+                      </span>
+                    )}
+
+                    {item.categoryTag && (
+                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-sm ${
+                        isLight ? 'bg-slate-200 text-slate-700' : 'bg-white/10 text-slate-300'
+                      }`}>
+                        {item.categoryTag}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-1">
+                    <span className="flex items-center gap-1 font-bold text-cyan-500">
+                      <Calendar className="w-3 h-3" />
+                      Her ayın {item.paymentDay || 1}. günü
                     </span>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
                   <div
-                    className={`text-xs font-black font-mono mt-0.5 ${
+                    className={`text-xs font-black font-mono text-right ${
                       item.type === 'income'
                         ? isLight ? 'text-emerald-600' : 'text-emerald-400'
                         : isLight ? 'text-rose-600' : 'text-rose-400'
                     }`}
                   >
-                    {formatMoney(item.amount)}
+                    {item.type === 'income' ? '+' : '-'}{formatMoney(item.amount)}
                   </div>
+                  <button
+                    onClick={() => {
+                      if (confirm(`"${item.name}" kalıcı işlemini silmek istediğinize emin misiniz?`)) {
+                        onDeleteRecurring(item.id);
+                      }
+                    }}
+                    className="p-1.5 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    title="Sil"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    if (confirm(`"${item.name}" kalıcı işlemini silmek istediğinize emin misiniz?`)) {
-                      onDeleteRecurring(item.id);
-                    }
-                  }}
-                  className="p-1.5 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
               </div>
             ))
           )}
         </div>
 
-        {/* Add Form - Sharp */}
+        {/* Add Form */}
         <form
           onSubmit={handleAdd}
           className={`p-3 rounded-md border-2 space-y-2.5 ${
@@ -709,14 +897,14 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Yeni Kalıcı İşlem Ekle</span>
+            <span>Yeni Kalıcı Ödeme / Abonelik Ekle</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setType('income')}
-              className={`h-9 rounded-md text-xs font-mono font-bold transition-all border ${
+              className={`h-8 rounded-md text-xs font-mono font-bold transition-all border ${
                 type === 'income'
                   ? 'bg-emerald-500 border-emerald-500 text-slate-950 shadow-sm'
                   : isLight
@@ -729,7 +917,7 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
             <button
               type="button"
               onClick={() => setType('expense')}
-              className={`h-9 rounded-md text-xs font-mono font-bold transition-all border ${
+              className={`h-8 rounded-md text-xs font-mono font-bold transition-all border ${
                 type === 'expense'
                   ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
                   : isLight
@@ -737,33 +925,103 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
                   : 'bg-[#120f1e] border-[#372d4c] text-slate-400'
               }`}
             >
-              💸 Gider (Kira)
+              💸 Gider / Abonelik
             </button>
           </div>
 
-          <input
-            type="text"
-            placeholder="İşlem Adı (Örn: Maaş, Ev Kirası)"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className={`w-full h-9 px-3 rounded-md border-2 text-xs font-bold focus:outline-none ${
-              isLight
-                ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
-                : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
-            }`}
-          />
+          {type === 'expense' && (
+            <div className="flex items-center justify-between p-2 rounded-md border bg-black/5 dark:bg-white/5 border-slate-300 dark:border-white/10">
+              <div className="flex items-center gap-1.5 text-xs font-bold">
+                <Tv className="w-3.5 h-3.5 text-purple-400" />
+                <span>Dijital Abonelik mi? (Netflix, Spotify vb.)</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={isSubscription}
+                onChange={e => setIsSubscription(e.target.checked)}
+                className="w-4 h-4 rounded accent-[#4361ee] cursor-pointer"
+              />
+            </div>
+          )}
 
-          <input
-            type="number"
-            placeholder="Sabit Tutar (₺)"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            className={`w-full h-9 px-3 rounded-md border-2 text-xs font-mono font-bold focus:outline-none ${
-              isLight
-                ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
-                : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
-            }`}
-          />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[9px] font-mono font-bold text-slate-400 uppercase mb-0.5">
+                İşlem Adı
+              </label>
+              <input
+                type="text"
+                placeholder="Örn: Netflix 4K, Kira"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className={`w-full h-8 px-2.5 rounded-md border text-xs font-bold focus:outline-none ${
+                  isLight
+                    ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                    : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+                }`}
+              />
+            </div>
+
+            <div>
+              <label className="block text-[9px] font-mono font-bold text-slate-400 uppercase mb-0.5">
+                Tutar (₺)
+              </label>
+              <input
+                type="number"
+                placeholder="0"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                className={`w-full h-8 px-2.5 rounded-md border text-xs font-mono font-bold focus:outline-none ${
+                  isLight
+                    ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[#4361ee]'
+                    : 'bg-[#120f1e] border-[#372d4c] text-slate-100 placeholder:text-slate-500 focus:border-cyan-400'
+                }`}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[9px] font-mono font-bold text-slate-400 uppercase mb-0.5">
+                Ödeme Günü (Ayın 1-31'i)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={paymentDay}
+                onChange={e => setPaymentDay(e.target.value)}
+                className={`w-full h-8 px-2.5 rounded-md border text-xs font-mono font-bold focus:outline-none ${
+                  isLight
+                    ? 'bg-white border-slate-300 text-slate-900 focus:border-[#4361ee]'
+                    : 'bg-[#120f1e] border-[#372d4c] text-slate-100 focus:border-cyan-400'
+                }`}
+              />
+            </div>
+
+            {type === 'expense' && (
+              <div>
+                <label className="block text-[9px] font-mono font-bold text-slate-400 uppercase mb-0.5">
+                  Kategori Etiketi
+                </label>
+                <select
+                  value={categoryTag}
+                  onChange={e => setCategoryTag(e.target.value)}
+                  className={`w-full h-8 px-2 rounded-md border text-xs font-medium focus:outline-none ${
+                    isLight
+                      ? 'bg-white border-slate-300 text-slate-900 focus:border-[#4361ee]'
+                      : 'bg-[#120f1e] border-[#372d4c] text-slate-100 focus:border-cyan-400'
+                  }`}
+                >
+                  {CATEGORY_PRESETS.map(cat => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
 
           <button
             type="submit"
@@ -773,7 +1031,7 @@ export const RecurringManagerModal: React.FC<RecurringManagerModalProps> = ({
                 : 'bg-cyan-400 text-slate-950 shadow-cyan-500/20'
             }`}
           >
-            Kalıcı İşlemi Kaydet
+            Kalıcı İşlemi / Aboneliği Kaydet
           </button>
         </form>
       </div>

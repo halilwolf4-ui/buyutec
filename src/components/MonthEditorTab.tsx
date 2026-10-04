@@ -22,10 +22,15 @@ import {
   Unlock,
   ChevronDown,
   ChevronUp,
+  ArrowLeft,
   ArrowUp,
   ArrowDown,
-  ArrowLeft,
-  Coins
+  Coins,
+  Compass,
+  Zap,
+  Sparkles,
+  Clock,
+  Calendar
 } from 'lucide-react';
 
 interface MonthEditorTabProps {
@@ -96,6 +101,82 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
   }, [currentMonth]);
 
   const isSurplus = remaining >= 0;
+
+  // Dynamic Daily Safe-to-Spend Allowance Calculation
+  const dailyMetrics = useMemo(() => {
+    const today = new Date();
+    const [yearStr, mStr] = currentMonth.id.split('-');
+    const currentYear = parseInt(yearStr, 10);
+    const mIdx = parseInt(mStr, 10);
+
+    const isCurrentActiveMonth =
+      today.getFullYear() === currentYear && today.getMonth() === mIdx;
+
+    let totalDaysInCycle = 30;
+    let daysRemaining = 30;
+    let daysElapsed = 1;
+
+    if (cycleStartDay === 1) {
+      // Standard calendar month
+      const lastDayOfMonth = new Date(currentYear, mIdx + 1, 0).getDate();
+      totalDaysInCycle = lastDayOfMonth;
+      if (isCurrentActiveMonth) {
+        const currentDay = today.getDate();
+        daysElapsed = currentDay;
+        daysRemaining = Math.max(1, totalDaysInCycle - currentDay + 1);
+      } else {
+        daysRemaining = totalDaysInCycle;
+      }
+    } else {
+      // Cycle from cycleStartDay of mIdx to cycleStartDay-1 of mIdx+1
+      const startDate = new Date(currentYear, mIdx, cycleStartDay);
+      const nextMonthIdx = (mIdx + 1) % 12;
+      const nextYear = mIdx === 11 ? currentYear + 1 : currentYear;
+      const endDate = new Date(nextYear, nextMonthIdx, cycleStartDay - 1);
+
+      const diffMs = endDate.getTime() - startDate.getTime();
+      totalDaysInCycle = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
+
+      if (today >= startDate && today <= endDate) {
+        const elapsedMs = today.getTime() - startDate.getTime();
+        daysElapsed = Math.max(1, Math.round(elapsedMs / (1000 * 60 * 60 * 24)) + 1);
+        daysRemaining = Math.max(1, totalDaysInCycle - daysElapsed + 1);
+      } else {
+        daysRemaining = totalDaysInCycle;
+      }
+    }
+
+    const netRemaining = remaining; // income - expense
+    const dailySafeSpend = netRemaining > 0 ? Math.round(netRemaining / daysRemaining) : 0;
+    const isBudgetExceeded = netRemaining < 0;
+
+    let statusType: 'safe' | 'warning' | 'danger' | 'neutral' = 'neutral';
+    let statusText = 'Dengeli Harcama';
+
+    if (isBudgetExceeded) {
+      statusType = 'danger';
+      statusText = 'Bütçe Aşıldı';
+    } else if (dailySafeSpend > 800) {
+      statusType = 'safe';
+      statusText = 'Çok Rahat / Yüksek Tasarruf';
+    } else if (dailySafeSpend >= 300) {
+      statusType = 'neutral';
+      statusText = 'Dengeli Harcama';
+    } else {
+      statusType = 'warning';
+      statusText = 'Tasarruf Modu';
+    }
+
+    return {
+      totalDaysInCycle,
+      daysElapsed,
+      daysRemaining,
+      dailySafeSpend,
+      isBudgetExceeded,
+      statusType,
+      statusText
+    };
+  }, [currentMonth.id, cycleStartDay, remaining]);
 
   // Month cycle title format
   const monthIdx = parseInt(currentMonth.id.split('-')[1], 10);
@@ -418,41 +499,113 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
         </p>
       </div>
 
-      {/* Status Card with Pay Debt & Net Remaining - Sharp & Stylized */}
+      {/* 📅 UNIFIED DAILY SAFE-TO-SPEND & NET BUDGET CARD */}
       <div
         className={`p-3.5 rounded-lg border-2 relative overflow-hidden transition-all ${
           isLight
-            ? 'bg-gradient-to-r from-white via-[#fbfcfe] to-[#f4f7fd] border-[#4361ee]/30 shadow-sm'
+            ? dailyMetrics.isBudgetExceeded
+              ? 'bg-rose-50/70 border-rose-300 shadow-sm'
+              : 'bg-gradient-to-r from-white via-[#fbfcfe] to-[#f4f7fd] border-[#4361ee]/30 shadow-sm'
+            : dailyMetrics.isBudgetExceeded
+            ? 'bg-rose-950/25 border-rose-500/40 shadow-md'
             : 'bg-gradient-to-br from-[#1a1428] via-[#141222] to-[#0e101a] border-[#3e3455] shadow-lg'
         }`}
       >
-        <div className="flex items-center justify-between gap-3">
-          {/* Quick Pay Debt Button - Sharp */}
-          <button
-            onClick={onOpenPayDebt}
-            className={`flex items-center gap-2 px-3 py-2 rounded-md font-bold text-xs shadow-md active:scale-95 transition-all ${
-              isLight
-                ? 'bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white shadow-[#f72585]/20'
-                : 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-rose-500/25'
-            }`}
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>Borç Öde</span>
-          </button>
+        {/* Top Header inside Card: Left Metric title, Right Actions (Borç Öde + Kalan Gün) */}
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-1.5">
+            <div
+              className={`p-1.5 rounded-md ${
+                dailyMetrics.isBudgetExceeded
+                  ? 'bg-rose-500/15 text-rose-500'
+                  : isLight
+                  ? 'bg-emerald-500/15 text-emerald-700'
+                  : 'bg-emerald-500/15 text-emerald-400'
+              }`}
+            >
+              <Compass className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-wider font-mono text-slate-400">
+                GÜNLÜK GÜVENLİ HARCAMA LİMİTİ
+              </div>
+              <div
+                className={`text-[11px] font-bold ${
+                  dailyMetrics.isBudgetExceeded
+                    ? 'text-rose-500'
+                    : isLight
+                    ? 'text-emerald-800'
+                    : 'text-emerald-300'
+                }`}
+              >
+                {dailyMetrics.statusText}
+              </div>
+            </div>
+          </div>
 
-          {/* Right Summary Figures */}
+          <div className="flex items-center gap-1.5">
+            {/* Quick Pay Debt Button */}
+            <button
+              onClick={onOpenPayDebt}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-[11px] shadow-sm active:scale-95 transition-all ${
+                isLight
+                  ? 'bg-gradient-to-r from-[#f72585] to-[#7209b7] text-white shadow-[#f72585]/20'
+                  : 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-rose-500/25'
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Borç Öde</span>
+            </button>
+
+            <span
+              className={`px-2 py-1 rounded-md text-[10px] font-mono font-bold border ${
+                dailyMetrics.isBudgetExceeded
+                  ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                  : isLight
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+              }`}
+            >
+              ⏳ {dailyMetrics.daysRemaining} Gün
+            </span>
+          </div>
+        </div>
+
+        {/* Main Figures: Left Daily Allowance, Right Net Remaining + Income/Expense breakdown */}
+        <div className="flex items-baseline justify-between gap-2 my-1">
+          <div className="flex items-baseline gap-1.5">
+            <span
+              className={`text-2xl sm:text-3xl font-black font-mono tracking-tight tabular-nums ${
+                dailyMetrics.isBudgetExceeded
+                  ? 'text-rose-500'
+                  : isLight
+                  ? 'text-emerald-700'
+                  : 'text-emerald-400'
+              }`}
+            >
+              {dailyMetrics.isBudgetExceeded ? '0 ₺' : formatMoney(dailyMetrics.dailySafeSpend)}
+            </span>
+            <span className={`text-xs font-mono font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              / gün harcanabilir
+            </span>
+          </div>
+
           <div className="text-right">
             <div
-              className={`text-2xl font-black font-mono tracking-tight tabular-nums ${
+              className={`text-base sm:text-lg font-black font-mono tracking-tight tabular-nums ${
                 isSurplus
-                  ? isLight ? 'text-[#4361ee]' : 'text-emerald-400'
-                  : isLight ? 'text-[#f72585]' : 'text-rose-400'
+                  ? isLight
+                    ? 'text-[#4361ee]'
+                    : 'text-emerald-400'
+                  : isLight
+                  ? 'text-[#f72585]'
+                  : 'text-rose-400'
               }`}
             >
               {isSurplus ? '+' : ''}
               {formatMoney(remaining)}
             </div>
-            <div className="flex items-center justify-end gap-2 text-[11px] font-mono mt-0.5">
+            <div className="flex items-center justify-end gap-1.5 text-[10px] font-mono mt-0.5">
               <span className={`font-bold ${isLight ? 'text-[#4361ee]' : 'text-emerald-400'}`}>
                 G: {formatMoney(totalIncome)}
               </span>
@@ -462,6 +615,18 @@ export const MonthEditorTab: React.FC<MonthEditorTabProps> = ({
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Micro-insight / Live feedback */}
+        <div
+          className={`text-[10px] font-mono mt-2 pt-1.5 border-t flex items-center gap-1.5 ${
+            isLight ? 'border-slate-200 text-slate-600' : 'border-white/10 text-slate-400'
+          }`}
+        >
+          <Zap className={`w-3 h-3 shrink-0 ${isLight ? 'text-[#4361ee]' : 'text-cyan-400'}`} />
+          <span>
+            Bugün az harcarsan sonraki günlerin limiti artar, fazla harcarsan sonraki günlere daha az bütçe kalır.
+          </span>
         </div>
       </div>
 

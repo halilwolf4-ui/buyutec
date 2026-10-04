@@ -245,14 +245,14 @@ export const MonthlyChart: React.FC<MonthlyChartProps> = ({ month, isLight = fal
     return { pathD: d, areaD: area, points: pts };
   }, [dailyData, chartWidth, chartHeight, paddingLeft, paddingRight, paddingTop, paddingBottom, baseY]);
 
-  // 2-Second Hold Timer Management
+  // 1-Second Hold Timer Management (Detailed Daily Spending Popup)
   const resetTimerForDay = useCallback((day: number) => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
     timerRef.current = setTimeout(() => {
       setPopupDay(day);
-    }, 2000);
+    }, 1000);
   }, []);
 
   const clearTimer = useCallback(() => {

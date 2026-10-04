@@ -9,6 +9,7 @@ import {
   AppData,
   MonthData,
   SavingsItem,
+  GoalJar,
   TR_MONTHS,
   generateId,
   formatMoney
@@ -23,7 +24,7 @@ import {
 } from './utils/storage';
 import { OverviewTab } from './components/OverviewTab';
 import { MonthEditorTab } from './components/MonthEditorTab';
-import { SavingsTab, AddSavingsModal } from './components/SavingsTab';
+import { SavingsTab, AddSavingsModal, getDaysSinceUpdate } from './components/SavingsTab';
 import { SettingsTab } from './components/SettingsTab';
 import { BottomNav, TabType } from './components/BottomNav';
 import {
@@ -135,6 +136,12 @@ export default function App() {
   const cashBuffer = useMemo(() => {
     return data.months.reduce((sum, m) => sum + (m.remaining || 0), 0);
   }, [data.months]);
+
+  // Check if Portfolio has any items not updated for 30+ days (1 month)
+  const hasOutdatedSavings = useMemo(() => {
+    if (!data.savings || data.savings.length === 0) return false;
+    return data.savings.some(item => getDaysSinceUpdate(item) >= 30);
+  }, [data.savings]);
 
   // Initialize or open active month
   const openMonth = useCallback((year: number, monthIdx: number) => {
@@ -404,13 +411,23 @@ export default function App() {
     showToast(`${targetDebt.name} için ${formatMoney(actualPaid)} ödendi!`);
   }, [currentMonth, data, updateData, showToast]);
 
-  // Add Recurring Item
-  const handleAddRecurring = useCallback((type: 'income' | 'expense', name: string, amount: number) => {
+  // Add Recurring Item (with Subscription & Payment Day support)
+  const handleAddRecurring = useCallback((
+    type: 'income' | 'expense',
+    name: string,
+    amount: number,
+    paymentDay: number = 1,
+    isSubscription: boolean = false,
+    categoryTag?: string
+  ) => {
     const newItem = {
       id: generateId(),
       type,
       name,
-      amount
+      amount,
+      paymentDay,
+      isSubscription,
+      categoryTag
     };
     const updatedRecurring = [...data.recurring, newItem];
     const updatedData = { ...data, recurring: updatedRecurring };
@@ -419,7 +436,7 @@ export default function App() {
     if (currentMonth) {
       setCurrentMonth(syncRecurringToMonth(currentMonth, updatedRecurring));
     }
-    showToast(`"${name}" kalıcı işlemi eklendi.`);
+    showToast(`"${name}" kalıcı işlemi / aboneliği eklendi.`);
   }, [data, updateData, currentMonth, showToast]);
 
   // Delete Recurring Item
@@ -455,6 +472,16 @@ export default function App() {
       savings: updatedSavings
     });
     showToast(`"${item.name}" birikimi eklendi!`);
+  }, [data, updateData, showToast]);
+
+  // Goal Jars Handlers
+  const handleUpdateGoalJars = useCallback((updatedGoals: GoalJar[]) => {
+    const updated = {
+      ...data,
+      goalJars: updatedGoals
+    };
+    updateData(updated);
+    showToast('Hedef kumbaraları güncellendi.');
   }, [data, updateData, showToast]);
 
   // Update Settings (e.g. cycle start day)
@@ -663,8 +690,10 @@ export default function App() {
           {activeTab === 'savings' && (
             <SavingsTab
               savings={data.savings || []}
+              goalJars={data.goalJars || []}
               cashBuffer={cashBuffer}
               onUpdateSavings={handleUpdateSavings}
+              onUpdateGoalJars={handleUpdateGoalJars}
               isLight={isLight}
               onOpenAddModal={() => setIsAddSavingsOpen(true)}
             />
@@ -698,6 +727,7 @@ export default function App() {
             }
           }}
           isLight={isLight}
+          hasOutdatedSavings={hasOutdatedSavings}
         />
       </div>
 

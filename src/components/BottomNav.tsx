@@ -7,12 +7,14 @@ interface BottomNavProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   isLight?: boolean;
+  hasOutdatedSavings?: boolean;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onTabChange,
-  isLight = false
+  isLight = false,
+  hasOutdatedSavings = false
 }) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none flex justify-center">
@@ -77,7 +79,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="text-[10px] font-mono tracking-tight mt-0.5">Bu Ay</span>
         </button>
 
-        {/* Tab 3: Birikim */}
+        {/* Tab 3: Birikim (with Red Warning Badge when Outdated) */}
         <button
           onClick={() => onTabChange('savings')}
           className={`flex flex-col items-center justify-center py-1 px-2 relative group flex-1 ${
@@ -98,6 +100,17 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             >
               <PiggyBank className="w-5 h-5" />
             </div>
+
+            {/* Outdated Stale Portfolio Warning Badge */}
+            {hasOutdatedSavings && (
+              <span
+                className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-black animate-pulse shadow-md shadow-rose-500/50"
+                title="Varlık portföyünüz 1 aydır güncellenmedi!"
+              >
+                !
+              </span>
+            )}
+
             {activeTab === 'savings' && (
               <span
                 className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-sm ${

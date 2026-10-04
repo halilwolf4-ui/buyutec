@@ -60,18 +60,41 @@ export interface RecurringItem {
   type: 'income' | 'expense';
   name: string;
   amount: number;
+  paymentDay?: number; // 1-31
+  isSubscription?: boolean; // Subscription (Netflix, Spotify, Gym, Fiber etc.)
+  categoryTag?: string;
+}
+
+export interface GoalJar {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  category?: 'Tatil' | 'Teknoloji' | 'Araba' | 'Acil Durum' | 'Ev' | 'Kişisel' | 'Diğer';
+  color?: string;
+  note?: string;
+  createdAt?: string;
 }
 
 export type SavingsCategoryType = 'fon' | 'altin' | 'vadeli' | 'borsa' | 'kripto' | 'doviz' | 'diger';
+
+export interface SavingsHistoryEntry {
+  date: string;
+  timestamp: number;
+  amount: number;
+}
 
 export interface SavingsItem {
   id: string;
   name: string;
   type: SavingsCategoryType;
   amount: number;
+  initialAmount?: number; // First purchase or cost amount for profit/loss calculation
   targetAmount?: number;
   note?: string;
   updatedAt?: string;
+  lastUpdatedTimestamp?: number;
+  history?: SavingsHistoryEntry[];
 }
 
 export interface AppSettings {
@@ -84,6 +107,7 @@ export interface AppData {
   debts: Debt[];
   recurring: RecurringItem[];
   savings: SavingsItem[];
+  goalJars?: GoalJar[];
 }
 
 export const SAVINGS_CATEGORIES: {

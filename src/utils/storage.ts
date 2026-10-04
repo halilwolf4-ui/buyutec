@@ -1,13 +1,171 @@
-import { AppData, MonthData, SavingsItem, TR_MONTHS, generateId } from '../types';
+import {
+  AppData,
+  MonthData,
+  SavingsItem,
+  GoalJar,
+  RecurringItem,
+  SavingsCategoryType,
+  SavingsHistoryEntry,
+  TR_MONTHS,
+  generateId
+} from '../types';
+
+export function generateSampleHistory(
+  amount: number,
+  type: SavingsCategoryType = 'fon'
+): SavingsHistoryEntry[] {
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const multipliers: Record<SavingsCategoryType, { daysAgo: number; ratio: number }[]> = {
+    altin: [
+      { daysAgo: 1825, ratio: 0.18 },
+      { daysAgo: 1095, ratio: 0.32 },
+      { daysAgo: 730, ratio: 0.48 },
+      { daysAgo: 365, ratio: 0.65 },
+      { daysAgo: 180, ratio: 0.78 },
+      { daysAgo: 90, ratio: 0.86 },
+      { daysAgo: 30, ratio: 0.91 },
+      { daysAgo: 20, ratio: 0.935 },
+      { daysAgo: 10, ratio: 0.965 },
+      { daysAgo: 3, ratio: 0.988 },
+      { daysAgo: 0, ratio: 1.0 }
+    ],
+    borsa: [
+      { daysAgo: 1825, ratio: 0.22 },
+      { daysAgo: 1095, ratio: 0.40 },
+      { daysAgo: 730, ratio: 0.62 },
+      { daysAgo: 365, ratio: 0.75 },
+      { daysAgo: 180, ratio: 1.08 },
+      { daysAgo: 90, ratio: 0.98 },
+      { daysAgo: 30, ratio: 0.91 },
+      { daysAgo: 20, ratio: 0.88 },
+      { daysAgo: 10, ratio: 0.95 },
+      { daysAgo: 3, ratio: 0.98 },
+      { daysAgo: 0, ratio: 1.0 }
+    ],
+    kripto: [
+      { daysAgo: 1825, ratio: 0.15 },
+      { daysAgo: 1095, ratio: 0.35 },
+      { daysAgo: 730, ratio: 0.45 },
+      { daysAgo: 365, ratio: 0.58 },
+      { daysAgo: 180, ratio: 1.15 },
+      { daysAgo: 90, ratio: 0.85 },
+      { daysAgo: 30, ratio: 0.86 },
+      { daysAgo: 20, ratio: 0.91 },
+      { daysAgo: 10, ratio: 0.95 },
+      { daysAgo: 3, ratio: 0.98 },
+      { daysAgo: 0, ratio: 1.0 }
+    ],
+    vadeli: [
+      { daysAgo: 1825, ratio: 0.25 },
+      { daysAgo: 1095, ratio: 0.42 },
+      { daysAgo: 730, ratio: 0.55 },
+      { daysAgo: 365, ratio: 0.70 },
+      { daysAgo: 180, ratio: 0.82 },
+      { daysAgo: 90, ratio: 0.90 },
+      { daysAgo: 30, ratio: 0.955 },
+      { daysAgo: 20, ratio: 0.97 },
+      { daysAgo: 10, ratio: 0.985 },
+      { daysAgo: 3, ratio: 0.995 },
+      { daysAgo: 0, ratio: 1.0 }
+    ],
+    fon: [
+      { daysAgo: 1825, ratio: 0.20 },
+      { daysAgo: 1095, ratio: 0.38 },
+      { daysAgo: 730, ratio: 0.52 },
+      { daysAgo: 365, ratio: 0.68 },
+      { daysAgo: 180, ratio: 0.80 },
+      { daysAgo: 90, ratio: 0.89 },
+      { daysAgo: 30, ratio: 0.93 },
+      { daysAgo: 20, ratio: 0.955 },
+      { daysAgo: 10, ratio: 0.978 },
+      { daysAgo: 3, ratio: 0.994 },
+      { daysAgo: 0, ratio: 1.0 }
+    ],
+    doviz: [
+      { daysAgo: 1825, ratio: 0.24 },
+      { daysAgo: 1095, ratio: 0.45 },
+      { daysAgo: 730, ratio: 0.60 },
+      { daysAgo: 365, ratio: 0.78 },
+      { daysAgo: 180, ratio: 0.88 },
+      { daysAgo: 90, ratio: 0.93 },
+      { daysAgo: 30, ratio: 0.965 },
+      { daysAgo: 20, ratio: 0.978 },
+      { daysAgo: 10, ratio: 0.99 },
+      { daysAgo: 3, ratio: 0.997 },
+      { daysAgo: 0, ratio: 1.0 }
+    ],
+    diger: [
+      { daysAgo: 1825, ratio: 0.30 },
+      { daysAgo: 1095, ratio: 0.50 },
+      { daysAgo: 730, ratio: 0.65 },
+      { daysAgo: 365, ratio: 0.80 },
+      { daysAgo: 180, ratio: 0.88 },
+      { daysAgo: 90, ratio: 0.93 },
+      { daysAgo: 30, ratio: 0.96 },
+      { daysAgo: 20, ratio: 0.975 },
+      { daysAgo: 10, ratio: 0.99 },
+      { daysAgo: 3, ratio: 0.995 },
+      { daysAgo: 0, ratio: 1.0 }
+    ]
+  };
+
+  const schedule = multipliers[type] || multipliers.diger;
+
+  return schedule.map(item => {
+    const t = now - item.daysAgo * dayMs;
+    const d = new Date(t);
+    const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+    return {
+      date: item.daysAgo === 0 ? 'Bugün' : dateStr,
+      timestamp: t,
+      amount: Math.round(amount * item.ratio)
+    };
+  });
+}
 
 export function createDefaultData(): AppData {
   const currentYear = new Date().getFullYear();
   const currentMonthIdx = new Date().getMonth();
 
-  const sampleRecurring = [
-    { id: 'rec-inc-1', type: 'income' as const, name: 'Ana Maaş', amount: 48500 },
-    { id: 'rec-exp-1', type: 'expense' as const, name: 'Ev Kirası', amount: 16000 },
-    { id: 'rec-exp-2', type: 'expense' as const, name: 'Site Aidatı', amount: 1450 }
+  const sampleRecurring: RecurringItem[] = [
+    { id: 'rec-inc-1', type: 'income', name: 'Ana Maaş', amount: 48500, paymentDay: 15, categoryTag: 'Maaş' },
+    { id: 'rec-exp-1', type: 'expense', name: 'Ev Kirası', amount: 16000, paymentDay: 15, isSubscription: false, categoryTag: 'Kira' },
+    { id: 'rec-exp-2', type: 'expense', name: 'Site Aidatı', amount: 1450, paymentDay: 18, isSubscription: false, categoryTag: 'Aidat' },
+    { id: 'rec-exp-3', type: 'expense', name: 'Netflix 4K', amount: 299, paymentDay: 5, isSubscription: true, categoryTag: 'Dizi/Film' },
+    { id: 'rec-exp-4', type: 'expense', name: 'Spotify Aile', amount: 99, paymentDay: 8, isSubscription: true, categoryTag: 'Müzik' },
+    { id: 'rec-exp-5', type: 'expense', name: 'Fiber İnternet', amount: 480, paymentDay: 22, isSubscription: true, categoryTag: 'İnternet' }
+  ];
+
+  const sampleGoalJars: GoalJar[] = [
+    {
+      id: 'goal-1',
+      name: 'Yaz Tatili & Seyahat',
+      targetAmount: 35000,
+      currentAmount: 21000,
+      category: 'Tatil',
+      color: '#06b6d4',
+      note: 'Ege Kıyı Turu 🌴'
+    },
+    {
+      id: 'goal-2',
+      name: 'Yeni Telefon (Pro)',
+      targetAmount: 65000,
+      currentAmount: 34000,
+      category: 'Teknoloji',
+      color: '#f72585',
+      note: 'Yıl Sonu Cihaz Yenileme 📱'
+    },
+    {
+      id: 'goal-3',
+      name: 'Acil Durum Kumbarası',
+      targetAmount: 100000,
+      currentAmount: 48000,
+      category: 'Acil Durum',
+      color: '#10b981',
+      note: '6 Aylık Sabit Gider Güvencesi 🛡️'
+    }
   ];
 
   const sampleDebts = [
@@ -29,46 +187,64 @@ export function createDefaultData(): AppData {
     }
   ];
 
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+
   const sampleSavings: SavingsItem[] = [
     {
       id: 'sav-1',
       name: 'Para Piyasası Fonu (PPF)',
       type: 'fon',
       amount: 45000,
+      initialAmount: 9000,
       note: 'Acil Durum Fonu',
-      updatedAt: '01/10/2026'
+      updatedAt: '01/10/2026',
+      lastUpdatedTimestamp: now - 3 * dayMs,
+      history: generateSampleHistory(45000, 'fon')
     },
     {
       id: 'sav-2',
       name: 'Gram Altın (Banka & Fiziki)',
       type: 'altin',
       amount: 85000,
+      initialAmount: 15300,
       note: '18 Gram Altın Portföyü',
-      updatedAt: '01/10/2026'
+      updatedAt: '01/10/2026',
+      lastUpdatedTimestamp: now - 3 * dayMs,
+      history: generateSampleHistory(85000, 'altin')
     },
     {
       id: 'sav-3',
       name: '32 Günlük Vadeli Mevduat',
       type: 'vadeli',
       amount: 60000,
+      initialAmount: 15000,
       note: '%48 Yıllık Oran',
-      updatedAt: '15/09/2026'
+      updatedAt: '15/08/2026',
+      lastUpdatedTimestamp: now - 38 * dayMs, // > 30 days to test the reminder!
+      history: generateSampleHistory(60000, 'vadeli')
     },
     {
       id: 'sav-4',
       name: 'BIST 30 Endeks Hisseleri',
       type: 'borsa',
       amount: 32000,
+      initialAmount: 7040,
       note: 'THYAO, TUPRS, EREGL',
-      updatedAt: '28/09/2026'
+      updatedAt: '28/09/2026',
+      lastUpdatedTimestamp: now - 6 * dayMs,
+      history: generateSampleHistory(32000, 'borsa')
     },
     {
       id: 'sav-5',
       name: 'BTC / ETH Soğuk Cüzdan',
       type: 'kripto',
       amount: 22000,
+      initialAmount: 3300,
       note: 'Uzun Vadeli HODL',
-      updatedAt: '02/10/2026'
+      updatedAt: '02/10/2026',
+      lastUpdatedTimestamp: now - 2 * dayMs,
+      history: generateSampleHistory(22000, 'kripto')
     }
   ];
 
@@ -298,7 +474,8 @@ export function createDefaultData(): AppData {
     },
     debts: sampleDebts,
     recurring: sampleRecurring,
-    savings: sampleSavings
+    savings: sampleSavings,
+    goalJars: sampleGoalJars
   };
 }
 
@@ -321,6 +498,24 @@ export function loadUserData(username?: string): AppData {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
+      const defaultData = createDefaultData();
+      const loadedSavings = Array.isArray(parsed.savings) ? parsed.savings : defaultData.savings;
+
+      // Auto-enrich existing savings with rich multi-year test history if fewer than 5 data points exist
+      const enrichedSavings = loadedSavings.map((item: SavingsItem) => {
+        if (!item.history || item.history.length < 5) {
+          const type = item.type || 'fon';
+          const generatedHist = generateSampleHistory(item.amount, type);
+          return {
+            ...item,
+            initialAmount: item.initialAmount || generatedHist[0]?.amount || Math.round(item.amount * 0.25),
+            history: generatedHist,
+            lastUpdatedTimestamp: item.lastUpdatedTimestamp || Date.now() - 3 * 86400000
+          };
+        }
+        return item;
+      });
+
       return {
         months: Array.isArray(parsed.months) ? parsed.months : [],
         settings: parsed.settings && typeof parsed.settings.cycleStartDay === 'number'
@@ -328,7 +523,8 @@ export function loadUserData(username?: string): AppData {
           : { cycleStartDay: 1 },
         debts: Array.isArray(parsed.debts) ? parsed.debts : [],
         recurring: Array.isArray(parsed.recurring) ? parsed.recurring : [],
-        savings: Array.isArray(parsed.savings) ? parsed.savings : (createDefaultData().savings)
+        savings: enrichedSavings,
+        goalJars: Array.isArray(parsed.goalJars) ? parsed.goalJars : (defaultData.goalJars || [])
       };
     } catch {
       // fallback
