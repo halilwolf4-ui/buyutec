@@ -34,8 +34,9 @@ import {
   RecurringManagerModal
 } from './components/Modals';
 import { AuthModal } from './components/AuthModal';
+import { QuickAddModal } from './components/QuickAddModal';
 import { BrandLogo } from './components/BrandLogo';
-import { Maximize2, Minimize2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Maximize2, Minimize2, CheckCircle2, AlertCircle, Plus } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setUser] = useState<string | null>(getCurrentUser());
@@ -60,6 +61,7 @@ export default function App() {
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isAddSavingsOpen, setIsAddSavingsOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
   // Transaction Modal State
   const [txModal, setTxModal] = useState<{
@@ -615,6 +617,115 @@ export default function App() {
     showToast(`${txModal.itemName} için ${formatMoney(amount)} eklendi!`);
   }, [currentMonth, txModal, showToast]);
 
+  // Quick Add Transaction Handler
+  const handleConfirmQuickAdd = useCallback((
+    type: 'expense' | 'income',
+    catId: string,
+    itemId: string,
+    amount: number,
+    desc: string,
+    dateStr?: string,
+    newItemName?: string
+  ) => {
+    let targetMonth = currentMonth;
+    if (!targetMonth) {
+      const today = new Date();
+      const mId = `${today.getFullYear()}-${today.getMonth()}`;
+      targetMonth = data.months.find(m => m.id === mId) || data.months[data.months.length - 1];
+    }
+    if (!targetMonth) return;
+
+    const updatedMonth = JSON.parse(JSON.stringify(targetMonth)) as MonthData;
+    const today = new Date();
+    const txDate = dateStr || `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+    let loggedItemName = '';
+
+    const newTx = {
+      id: generateId(),
+      amount,
+      desc: desc.trim() || (type === 'expense' ? 'Hızlı Harcama' : 'Hızlı Gelir'),
+      date: txDate,
+      timestamp: Date.now()
+    };
+
+    if (type === 'income') {
+      let incomeItem = updatedMonth.incomes.find(i => i.id === itemId);
+      if (!incomeItem && newItemName) {
+        incomeItem = {
+          id: generateId(),
+          name: newItemName,
+          amount: 0,
+          transactions: []
+        };
+        updatedMonth.incomes.push(incomeItem);
+      }
+      if (incomeItem) {
+        loggedItemName = incomeItem.name;
+        incomeItem.transactions = incomeItem.transactions || [];
+        incomeItem.transactions.push(newTx);
+        incomeItem.amount = incomeItem.transactions.reduce((acc, t) => acc + t.amount, 0);
+      }
+    } else {
+      const category = updatedMonth.categories.find(c => c.id === catId);
+      if (category) {
+        let catItem = category.items.find(i => i.id === itemId);
+        if (!catItem && newItemName) {
+          catItem = {
+            id: generateId(),
+            name: newItemName,
+            amount: 0,
+            transactions: [],
+            sliderLocked: false
+          };
+          category.items.push(catItem);
+        }
+        if (catItem) {
+          loggedItemName = catItem.name;
+          catItem.transactions = catItem.transactions || [];
+          catItem.transactions.push(newTx);
+          catItem.amount = catItem.transactions.reduce((acc, t) => acc + t.amount, 0);
+        }
+      }
+    }
+
+    // Recompute total income, expense and remaining for this month
+    let totInc = 0;
+    updatedMonth.incomes.forEach(i => {
+      const sum = i.transactions ? i.transactions.reduce((acc, t) => acc + t.amount, 0) : 0;
+      i.amount = sum;
+      totInc += sum;
+    });
+
+    let totExp = 0;
+    updatedMonth.categories.forEach(c => {
+      c.items.forEach(i => {
+        const sum = i.transactions ? i.transactions.reduce((acc, t) => acc + t.amount, 0) : 0;
+        i.amount = sum;
+        totExp += sum;
+      });
+    });
+
+    updatedMonth.income = totInc;
+    updatedMonth.expense = totExp;
+    updatedMonth.remaining = totInc - totExp;
+
+    const newMonths = [...data.months];
+    const existingIdx = newMonths.findIndex(m => m.id === updatedMonth.id);
+    if (existingIdx >= 0) {
+      newMonths[existingIdx] = updatedMonth;
+    } else {
+      newMonths.push(updatedMonth);
+    }
+
+    updateData({
+      ...data,
+      months: newMonths
+    });
+
+    setCurrentMonth(updatedMonth);
+    showToast(`${loggedItemName || 'İşlem'} için ${formatMoney(amount)} başarıyla eklendi!`);
+  }, [currentMonth, data, updateData, showToast]);
+
   return (
     <div
       className={`min-h-screen w-full flex flex-col items-center justify-start ${
@@ -715,6 +826,28 @@ export default function App() {
           )}
         </main>
 
+        {/* Floating Quick Action Button (Sağ Altta Açık Mavi Artı Butonu) */}
+        {activeTab === 'overview' && (
+          <div className="fixed bottom-20 left-0 right-0 z-40 pointer-events-none flex justify-center">
+            <div className="w-full max-w-md px-4 flex justify-end pointer-events-none">
+              <motion.button
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                type="button"
+                onClick={() => setIsQuickAddOpen(true)}
+                className="pointer-events-auto w-14 h-14 rounded-full bg-cyan-400 hover:bg-cyan-300 text-slate-950 flex items-center justify-center shadow-[0_6px_28px_rgba(6,182,212,0.65)] border-2 border-white/80 dark:border-cyan-200/60 transition-colors group cursor-pointer"
+                title="Hızlı Giriş (+)"
+                aria-label="Hızlı İşlem Girişi"
+              >
+                <Plus className="w-7 h-7 stroke-[2.75] text-slate-950 transition-transform duration-200 group-hover:rotate-90" />
+              </motion.button>
+            </div>
+          </div>
+        )}
+
         {/* Bottom Navigation */}
         <BottomNav
           activeTab={activeTab}
@@ -732,6 +865,14 @@ export default function App() {
       </div>
 
       {/* Modals & Dialogs */}
+      <QuickAddModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        currentMonth={currentMonth}
+        onConfirm={handleConfirmQuickAdd}
+        isLight={isLight}
+      />
+
       <TransactionModal
         isOpen={txModal.isOpen}
         onClose={() => setTxModal(prev => ({ ...prev, isOpen: false }))}
